@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Oracle</title>
+    <meta name="description" content="Answer 3 absurd questions. Get a film recommendation that somehow feels right.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+/* =============================================
+   RESET & BASE
+   ============================================= */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0a0a0f;
+    --bg-grid: rgba(255, 255, 255, 0.03);
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-hover: rgba(255, 255, 255, 0.08);
+    --text: #f0f0f0;
+    --text-dim: rgba(255, 255, 255, 0.5);
+    --text-muted: rgba(255, 255, 255, 0.3);
+    --blue: #3b82f6;
+    --pink: #ec4899;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --green: #22c55e;
+    --purple: #a855f7;
+    --radius: 12px;
+    --radius-pill: 100px;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =============================================
+   GRID TEXTURE BACKGROUND
+   ============================================= */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* =============================================
+   APP CONTAINER
+   ============================================= */
+.app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+}
+
+/* =============================================
+   SCREENS — transition between states
+   ============================================= */
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    animation: fadeUp 0.4s ease both;
+}
+
+.screen.active {
+    display: flex;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =============================================
+   LANDING SCREEN
+   ============================================= */
+.oracle-symbol {
+    font-size: 3rem;
+    margin-bottom: 24px;
+    line-height: 1;
+    color: var(--purple);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    letter-spacing: -2px;
+    opacity: 0.7;
+}
+
+.landing-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 3rem;
+    line-height: 1;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.landing-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-bottom: 48px;
+    font-weight: 400;
+}
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+.btn-primary {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    padding: 18px 48px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+}
+
+.btn-primary:hover {
+    transform: scale(1.03);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    padding: 14px 36px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* =============================================
+   QUESTION SCREEN
+   ============================================= */
+.question-progress {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.question-text {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 2.4rem;
+    line-height: 1.1;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+}
+
+.answer-group {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.answer-btn {
+    flex: 1;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    padding: 24px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.answer-btn:hover {
+    background: var(--surface-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.answer-btn:active {
+    transform: translateY(0);
+}
+
+/* Color accents per question */
+.q1 .answer-btn:first-child:hover { border-color: var(--orange); color: var(--orange); }
+.q1 .answer-btn:last-child:hover { border-color: var(--green); color: var(--green); }
+.q2 .answer-btn:first-child:hover { border-color: var(--blue); color: var(--blue); }
+.q2 .answer-btn:last-child:hover { border-color: var(--pink); color: var(--pink); }
+.q3 .answer-btn:first-child:hover { border-color: var(--yellow); color: var(--yellow); }
+.q3 .answer-btn:last-child:hover { border-color: var(--purple); color: var(--purple); }
+
+/* =============================================
+   LOADING SCREEN
+   ============================================= */
+.loading-text {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+.loading-dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--purple);
+    animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotBounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* =============================================
+   RESULT SCREEN
+   ============================================= */
+.result-poster {
+    width: 220px;
+    height: 330px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow:
+        0 8px 40px rgba(0, 0, 0, 0.5),
+        0 0 80px rgba(168, 85, 247, 0.1);
+    margin-bottom: 28px;
+    background: var(--bg);
+}
+
+.result-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.result-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.8rem;
+    line-height: 1.15;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.result-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+.result-hook {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    max-width: 340px;
+    margin-bottom: 36px;
+    font-style: italic;
+}
+
+.result-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* =============================================
+   ERROR STATE
+   ============================================= */
+.error-text {
+    color: var(--pink);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 480px) {
+    .landing-title {
+        font-size: 2.4rem;
+    }
+
+    .question-text {
+        font-size: 1.8rem;
+    }
+
+    .answer-group {
+        max-width: 100%;
+    }
+
+    .result-poster {
+        width: 180px;
+        height: 270px;
+    }
+
+    .result-title {
+        font-size: 1.4rem;
+    }
+
+    .result-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
+}
+
+@media (min-height: 800px) {
+    .result-poster {
+        width: 260px;
+        height: 390px;
+    }
+}
+    </style>
+</head>
+<body>
+
+<div class="app">
+
+    <!-- LANDING -->
+    <div class="screen active" id="landing">
+        <div class="oracle-symbol">&lt;/&gt;</div>
+        <h1 class="landing-title">Movie<br>Oracle</h1>
+        <p class="landing-subtitle">Answer 3 questions. Trust the process.</p>
+        <button class="btn-primary" onclick="startOracle()">Consult the Oracle</button>
+    </div>
+
+    <!-- QUESTION -->
+    <div class="screen" id="question">
+        <div class="question-progress" id="questionProgress">1 / 3</div>
+        <h2 class="question-text" id="questionText"></h2>
+        <div class="answer-group" id="answerGroup">
+            <button class="answer-btn" onclick="answer(0)" id="answerA"></button>
+            <button class="answer-btn" onclick="answer(1)" id="answerB"></button>
+        </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="screen" id="loading">
+        <div class="loading-text" id="loadingText">Consulting the Oracle...</div>
+        <div class="loading-dots">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="screen" id="result">
+        <div class="result-poster" id="resultPoster">
+            <img id="posterImg" src="" alt="Movie poster">
+        </div>
+        <h2 class="result-title" id="resultTitle"></h2>
+        <div class="result-meta" id="resultMeta"></div>
+        <p class="result-hook" id="resultHook"></p>
+        <div class="result-actions">
+            <button class="btn-primary" onclick="watchAgain()">Another Pick</button>
+            <button class="btn-secondary" onclick="startOver()">Start Over</button>
+        </div>
+    </div>
+
+    <!-- ERROR -->
+    <div class="screen" id="error">
+        <p class="error-text" id="errorText">Something went wrong. The Oracle is resting.</p>
+        <button class="btn-secondary" onclick="startOver()">Try Again</button>
+    </div>
+
+</div>
+
+<script>
+// =============================================
+//  CONFIG
+// =============================================
+const TMDB_BASE = 'https://api.themoviedb.org/3';
+const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
+let TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzNzgzOTc5YzYwMjEzNzhlMzQ2MTI3NGE0MjhlN2M2NCIsIm5iZiI6MTc1MTQ1NDk1My43ODksInN1YiI6IjY4NjUxNGU5ODEwNWJhMmYwNzZmNjJhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Nq87nfCN7RIsnqn1un0Aac1w1vwERMB9WZGxrvz4Ee4';
+
+// =============================================
+//  QUESTIONS
+// =============================================
+const questions = [
+    { text: 'Coffee or Tea?', options: ['Coffee', 'Tea'], class: 'q1' },
+    { text: 'Window or Aisle?', options: ['Window', 'Aisle'], class: 'q2' },
+    { text: 'Matching or Chaos?', options: ['Matching', 'Chaos'], class: 'q3' },
+];
+
+const loadingMessages = [
+    'Consulting the Oracle...',
+    'Reading the film runes...',
+    'Divining your perfect match...',
+];
+
+// =============================================
+//  ANSWER → GENRE MAPPING
+// =============================================
+function buildFilters(answers) {
+    let genres = new Set();
+    let yearGte = '1950-01-01';
+    let yearLte = '2026-12-31';
+    let voteAvg = 6.0;
+
+    // Q1: Coffee (modern, fast) vs Tea (classic, slow)
+    if (answers[0] === 0) {
+        yearGte = '2000-01-01';
+        [28, 53, 878, 80].forEach(g => genres.add(g)); // Action, Thriller, Sci-Fi, Crime
+    } else {
+        yearLte = '2010-12-31';
+        [18, 10749, 36, 10402].forEach(g => genres.add(g)); // Drama, Romance, History, Music
+    }
+
+    // Q2: Window (expansive) vs Aisle (intimate)
+    if (answers[1] === 0) {
+        [12, 14, 16].forEach(g => genres.add(g)); // Adventure, Fantasy, Animation
+    } else {
+        [18, 9648].forEach(g => genres.add(g)); // Drama, Mystery
+    }
+
+    // Q3: Matching (structured, high-rated) vs Chaos (weird, experimental)
+    if (answers[2] === 0) {
+        voteAvg = 7.5;
+    } else {
+        [878, 27, 9648].forEach(g => genres.add(g)); // Sci-Fi, Horror, Mystery
+        voteAvg = 6.5;
+    }
+
+    // Pick top 3 genres (TMDB allows comma-separated OR via pipe)
+    const genreArr = [...genres];
+    const selectedGenres = genreArr.sort(() => Math.random() - 0.5).slice(0, 3);
+
+    return {
+        with_genres: selectedGenres.join(','),
+        'primary_release_date.gte': yearGte,
+        'primary_release_date.lte': yearLte,
+        'vote_average.gte': voteAvg,
+        'vote_count.gte': 500,
+        sort_by: 'vote_average.desc',
+        language: 'en-US',
+        page: Math.floor(Math.random() * 3) + 1,
+    };
+}
+
+// =============================================
+//  HOOKS — based on answer combos
+// =============================================
+const hooks = {
+    '0,0,0': "You crave big adventures with satisfying payoffs. Here's one that delivers.",
+    '0,0,1': "You want a wild ride through uncharted territory. Buckle up.",
+    '0,1,0': "You like your stories tight, modern, and razor-sharp.",
+    '0,1,1': "Conventional storytelling bores you. This one doesn't play safe.",
+    '1,0,0': "You appreciate beauty, patience, and a story well told.",
+    '1,0,1': "You want something dreamy and strange. This fits.",
+    '1,1,0': "You like intimate stories with quiet depth. This one lingers.",
+    '1,1,1': "Your brain craves something beautifully strange and unforgettable.",
+};
+
+function getHook(answers) {
+    const key = answers.join(',');
+    return hooks[key] || "The Oracle has spoken. Trust it.";
+}
+
+// =============================================
+//  STATE
+// =============================================
+let currentQuestion = 0;
+let answers = [];
+let lastResults = [];
+let lastResultIndex = 0;
+
+// =============================================
+//  SCREEN TRANSITIONS
+// =============================================
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => {
+        s.classList.remove('active');
+    });
+    const el = document.getElementById(id);
+    el.classList.add('active');
+    // Re-trigger animation
+    el.style.animation = 'none';
+    el.offsetHeight; // reflow
+    el.style.animation = '';
+}
+
+// =============================================
+//  FLOW
+// =============================================
+function startOracle() {
+    currentQuestion = 0;
+    answers = [];
+    showQuestion();
+}
+
+function showQuestion() {
+    const q = questions[currentQuestion];
+    document.getElementById('questionProgress').textContent = `${currentQuestion + 1} / 3`;
+    document.getElementById('questionText').textContent = q.text;
+    document.getElementById('answerA').textContent = q.options[0];
+    document.getElementById('answerB').textContent = q.options[1];
+    document.getElementById('answerGroup').className = 'answer-group ' + q.class;
+    showScreen('question');
+}
+
+function answer(choice) {
+    answers.push(choice);
+    currentQuestion++;
+
+    if (currentQuestion < questions.length) {
+        showQuestion();
+    } else {
+        fetchMovie();
+    }
+}
+
+function tmdbFetch(path, params) {
+    const url = `${TMDB_BASE}${path}?${new URLSearchParams(params)}`;
+    return fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${TMDB_TOKEN}`,
+            'Content-Type': 'application/json',
+        },
+    });
+}
+
+async function fetchMovie() {
+    // Show loading
+    const msg = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+    document.getElementById('loadingText').textContent = msg;
+    showScreen('loading');
+
+    try {
+        const filters = buildFilters(answers);
+        const res = await tmdbFetch('/discover/movie', filters);
+        if (!res.ok) throw new Error('TMDB API error');
+        const data = await res.json();
+
+        if (!data.results || data.results.length === 0) {
+            // Fallback: relax filters
+            filters['vote_average.gte'] = 6.0;
+            filters['vote_count.gte'] = 200;
+            filters.page = 1;
+            const res2 = await tmdbFetch('/discover/movie', filters);
+            const data2 = await res2.json();
+            if (!data2.results || data2.results.length === 0) throw new Error('No movies found');
+            lastResults = data2.results;
+        } else {
+            lastResults = data.results;
+        }
+
+        // Shuffle results
+        lastResults = lastResults.sort(() => Math.random() - 0.5);
+        lastResultIndex = 0;
+
+        // Dramatic delay
+        await new Promise(r => setTimeout(r, 1500));
+        showResult();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('errorText').textContent =
+            'The Oracle stumbled. Check your connection and try again.';
+        showScreen('error');
+    }
+}
+
+function showResult() {
+    if (lastResultIndex >= lastResults.length) {
+        // Exhausted results, re-fetch
+        fetchMovie();
+        return;
+    }
+
+    const movie = lastResults[lastResultIndex];
+    lastResultIndex++;
+
+    // Poster
+    const posterImg = document.getElementById('posterImg');
+    if (movie.poster_path) {
+        posterImg.src = TMDB_IMG + movie.poster_path;
+        posterImg.alt = movie.title;
+    } else {
+        posterImg.src = '';
+        posterImg.alt = 'No poster available';
+    }
+
+    // Title
+    document.getElementById('resultTitle').textContent = movie.title;
+
+    // Meta: year + rating
+    const year = movie.release_date ? movie.release_date.split('-')[0] : '—';
+    const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
+    document.getElementById('resultMeta').textContent = `${year}  ·  ${rating}/10`;
+
+    // Hook
+    document.getElementById('resultHook').textContent =
+        '"' + getHook(answers) + '"';
+
+    showScreen('result');
+}
+
+function watchAgain() {
+    showResult();
+}
+
+function startOver() {
+    showScreen('landing');
+}
+
+// =============================================
+//  INIT — load token from config.js
+// =============================================
+(function() {
+    const script = document.createElement('script');
+    script.src = 'config.js';
+    script.onerror = () => {
+        console.warn('config.js not found. Create it with your TMDB credentials.');
+    };
+    script.onload = () => {
+        if (window.TMDB_CONFIG) {
+            TMDB_TOKEN = window.TMDB_CONFIG.accessToken || '';
+        }
+    };
+    document.head.appendChild(script);
+})();
+</script>
+
+</body>
+</html>
