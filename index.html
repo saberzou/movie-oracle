@@ -85,51 +85,41 @@ body::before {
 }
 
 /* =============================================
-   DECORATIVE ILLUSTRATIONS
+   QUESTION SCREEN DECORATIONS
    ============================================= */
-.deco {
+.question-deco {
     position: fixed;
-    z-index: 0;
     pointer-events: none;
-    transition: opacity 0.6s ease;
-    opacity: 0.55;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: 0;
 }
 
-.deco img {
+.question-deco img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
 }
 
-.deco-cinema {
-    width: 240px;
-    height: 240px;
-    top: 2%;
-    left: -3%;
-    animation: floatA 6s ease-in-out infinite;
+.question-deco.visible {
+    opacity: 0.4;
 }
 
 .deco-popcorn {
-    width: 200px;
-    height: 200px;
-    top: 3%;
-    right: -2%;
+    width: 140px;
+    height: 140px;
+    top: 8%;
+    right: 3%;
     animation: floatB 7s ease-in-out infinite;
 }
 
 .deco-reel {
-    width: 220px;
-    height: 220px;
-    bottom: 3%;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 130px;
+    height: 130px;
+    bottom: 10%;
+    left: 3%;
     animation: floatC 8s ease-in-out infinite;
-}
-
-@keyframes floatA {
-    0%, 100% { transform: translateY(0) rotate(-3deg); }
-    50% { transform: translateY(-14px) rotate(3deg); }
 }
 
 @keyframes floatB {
@@ -138,20 +128,18 @@ body::before {
 }
 
 @keyframes floatC {
-    0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
-    50% { transform: translateX(-50%) translateY(-10px) rotate(4deg); }
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-10px) rotate(4deg); }
 }
 
 @media (max-width: 480px) {
-    .deco-cinema { width: 150px; height: 150px; top: 2%; left: -6%; }
-    .deco-popcorn { width: 130px; height: 130px; top: 3%; right: -5%; }
-    .deco-reel { width: 140px; height: 140px; bottom: 3%; }
+    .deco-popcorn { width: 90px; height: 90px; top: 5%; right: 0; }
+    .deco-reel { width: 85px; height: 85px; bottom: 6%; left: 0; }
 }
 
 @media (min-width: 768px) {
-    .deco-cinema { width: 280px; height: 280px; top: 5%; left: 4%; }
-    .deco-popcorn { width: 240px; height: 240px; top: 6%; right: 4%; }
-    .deco-reel { width: 260px; height: 260px; bottom: 6%; }
+    .deco-popcorn { width: 180px; height: 180px; top: 10%; right: 8%; }
+    .deco-reel { width: 170px; height: 170px; bottom: 12%; left: 8%; }
 }
 
 /* =============================================
@@ -185,15 +173,22 @@ body::before {
    LANDING SCREEN
    ============================================= */
 .oracle-symbol {
-    width: 140px;
-    height: 140px;
-    margin-bottom: 20px;
+    width: 220px;
+    height: 220px;
+    margin-bottom: 16px;
 }
 
 .oracle-symbol img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+}
+
+@media (max-width: 480px) {
+    .oracle-symbol {
+        width: 160px;
+        height: 160px;
+    }
 }
 
 .landing-title {
@@ -368,7 +363,8 @@ body::before {
         0 8px 40px rgba(0, 0, 0, 0.5),
         0 0 80px rgba(168, 85, 247, 0.1);
     margin-bottom: 28px;
-    background: var(--bg);
+    background: var(--surface);
+    position: relative;
 }
 
 .result-poster img {
@@ -376,6 +372,40 @@ body::before {
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.result-poster img.loaded {
+    opacity: 1;
+}
+
+/* Shimmer loading effect */
+.result-poster::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        transparent 25%,
+        rgba(255, 255, 255, 0.06) 37%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(255, 255, 255, 0.06) 63%,
+        transparent 75%
+    );
+    background-size: 250% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.result-poster.poster-loaded::after {
+    opacity: 0;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .result-title {
@@ -462,11 +492,6 @@ body::before {
 </head>
 <body>
 
-<!-- DECORATIVE ILLUSTRATIONS -->
-<div class="deco deco-cinema"><img src="cinema.png" alt="" aria-hidden="true"></div>
-<div class="deco deco-popcorn"><img src="popcorn.png" alt="" aria-hidden="true"></div>
-<div class="deco deco-reel"><img src="reel.png" alt="" aria-hidden="true"></div>
-
 <div class="app">
 
     <!-- LANDING -->
@@ -476,6 +501,10 @@ body::before {
         <p class="landing-subtitle">Answer 3 questions. Trust the process.</p>
         <button class="btn-primary" onclick="startOracle()">Consult the Oracle</button>
     </div>
+
+    <!-- QUESTION DECORATIONS (positioned fixed, toggled by JS) -->
+    <div class="question-deco deco-popcorn" id="decoPopcorn"><img src="popcorn.png" alt="" aria-hidden="true"></div>
+    <div class="question-deco deco-reel" id="decoReel"><img src="reel.png" alt="" aria-hidden="true"></div>
 
     <!-- QUESTION -->
     <div class="screen" id="question">
@@ -629,6 +658,10 @@ function showScreen(id) {
     el.style.animation = 'none';
     el.offsetHeight; // reflow
     el.style.animation = '';
+
+    // Show/hide question decorations
+    const decos = document.querySelectorAll('.question-deco');
+    decos.forEach(d => d.classList.toggle('visible', id === 'question'));
 }
 
 // =============================================
@@ -723,7 +756,14 @@ function showResult() {
 
     // Poster
     const posterImg = document.getElementById('posterImg');
+    const posterContainer = document.getElementById('resultPoster');
+    posterImg.classList.remove('loaded');
+    posterContainer.classList.remove('poster-loaded');
     if (movie.poster_path) {
+        posterImg.onload = () => {
+            posterImg.classList.add('loaded');
+            posterContainer.classList.add('poster-loaded');
+        };
         posterImg.src = TMDB_IMG + movie.poster_path;
         posterImg.alt = movie.title;
     } else {
