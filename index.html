@@ -451,13 +451,19 @@ body::before {
     border: none;
     padding: 0;
     background: transparent;
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: fit-content;
+    height: fit-content;
     max-width: 100vw;
     max-height: 100vh;
 }
 
 .movie-modal[open] {
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .movie-modal::backdrop {
@@ -470,12 +476,14 @@ body::before {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px;
     padding: 24px;
+    padding-top: 48px;
     width: min(560px, 90vw);
     max-height: 85vh;
     color: var(--text);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-header {
@@ -501,13 +509,15 @@ body::before {
 }
 
 .modal-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
+    position: sticky;
+    top: 0;
+    float: right;
+    margin-top: -36px;
+    margin-right: -4px;
     width: 32px;
     height: 32px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(18, 18, 26, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.15);
     color: var(--text);
     font-size: 18px;
@@ -515,6 +525,7 @@ body::before {
     cursor: pointer;
     display: grid;
     place-items: center;
+    z-index: 10;
 }
 
 .modal-content {
@@ -522,7 +533,6 @@ body::before {
     grid-template-columns: 140px 1fr;
     gap: 18px;
     align-items: start;
-    max-height: calc(85vh - 120px);
 }
 
 .modal-poster {
@@ -544,10 +554,6 @@ body::before {
     font-size: 0.98rem;
     line-height: 1.6;
     color: var(--text-dim);
-    display: -webkit-box;
-    -webkit-line-clamp: 6;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 @media (max-width: 520px) {
@@ -666,12 +672,12 @@ body::before {
     <!-- MOVIE MODAL -->
     <dialog class="movie-modal" id="movieModal" aria-label="Movie details">
         <div class="modal-card">
+            <button class="modal-close" id="modalClose" aria-label="Close details">×</button>
             <div class="modal-header">
                 <div>
                     <div class="modal-title" id="modalTitle"></div>
                     <div class="modal-meta" id="modalMeta"></div>
                 </div>
-                <button class="modal-close" id="modalClose" aria-label="Close details">×</button>
             </div>
             <div class="modal-content">
                 <div class="modal-poster">
