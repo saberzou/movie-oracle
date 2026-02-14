@@ -371,6 +371,7 @@ body::before {
     margin-bottom: 28px;
     background: var(--surface);
     position: relative;
+    cursor: pointer;
 }
 
 .result-poster img {
@@ -441,6 +442,103 @@ body::before {
 .result-actions {
     display: flex;
     gap: 12px;
+}
+
+/* =============================================
+   MOVIE MODAL
+   ============================================= */
+.movie-modal {
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
+.movie-modal::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+}
+
+.modal-card {
+    background: #12121a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 24px;
+    width: min(560px, 92vw);
+    color: var(--text);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.modal-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.6rem;
+    text-transform: uppercase;
+    line-height: 1.1;
+}
+
+.modal-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-top: 6px;
+}
+
+.modal-close {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.modal-content {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.modal-poster {
+    width: 140px;
+    height: 210px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.modal-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.modal-overview {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--text-dim);
+}
+
+@media (max-width: 520px) {
+    .modal-content {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-poster {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 2 / 3;
+    }
 }
 
 /* =============================================
@@ -544,6 +642,25 @@ body::before {
         </div>
     </div>
 
+    <!-- MOVIE MODAL -->
+    <dialog class="movie-modal" id="movieModal" aria-label="Movie details">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modalTitle"></div>
+                    <div class="modal-meta" id="modalMeta"></div>
+                </div>
+                <button class="modal-close" id="modalClose" aria-label="Close details">Close</button>
+            </div>
+            <div class="modal-content">
+                <div class="modal-poster">
+                    <img id="modalPoster" src="" alt="Movie poster">
+                </div>
+                <p class="modal-overview" id="modalOverview"></p>
+            </div>
+        </div>
+    </dialog>
+
     <!-- ERROR -->
     <div class="screen" id="error">
         <p class="error-text" id="errorText">Something went wrong. The Oracle is resting.</p>
@@ -624,6 +741,166 @@ const questionPool = [
         { voteAvg: 7.0, genres: [18, 36, 10752] },
         { genres: [35, 12, 14], voteAvg: 6.0 }
       ]},
+    { text: 'Indie or Blockbuster?', options: ['Indie', 'Blockbuster'],
+      filters: [
+        { voteAvg: 7.2, genres: [18, 99] },
+        { genres: [28, 12, 878], yearGte: '2008-01-01' }
+      ]},
+    { text: 'Road trip or Staycation?', options: ['Road trip', 'Staycation'],
+      filters: [
+        { genres: [12, 35] },
+        { genres: [18, 9648] }
+      ]},
+    { text: 'Analog or Digital?', options: ['Analog', 'Digital'],
+      filters: [
+        { genres: [18, 36], yearLte: '2012-12-31' },
+        { genres: [878, 53], yearGte: '2012-01-01' }
+      ]},
+    { text: 'Mountains or Ocean?', options: ['Mountains', 'Ocean'],
+      filters: [
+        { genres: [12, 18], yearGte: '1995-01-01' },
+        { genres: [12, 53, 14], yearGte: '1995-01-01' }
+      ]},
+    { text: 'Stargazing or City lights?', options: ['Stargazing', 'City lights'],
+      filters: [
+        { genres: [878, 12] },
+        { genres: [80, 9648, 18] }
+      ]},
+    { text: 'Solo hero or Ensemble?', options: ['Solo hero', 'Ensemble'],
+      filters: [
+        { genres: [28, 12] },
+        { genres: [35, 18, 80] }
+      ]},
+    { text: 'Quiet or Loud?', options: ['Quiet', 'Loud'],
+      filters: [
+        { genres: [18, 9648], voteAvg: 7.3 },
+        { genres: [28, 53, 12], voteAvg: 6.5 }
+      ]},
+    { text: 'Hopeful or Dark?', options: ['Hopeful', 'Dark'],
+      filters: [
+        { genres: [18, 10751], voteAvg: 7.0 },
+        { genres: [53, 27, 9648] }
+      ]},
+    { text: 'Classic or Experimental?', options: ['Classic', 'Experimental'],
+      filters: [
+        { genres: [18, 36], voteAvg: 7.2 },
+        { genres: [878, 53, 14], voteAvg: 6.6 }
+      ]},
+    { text: 'Fast or Slow burn?', options: ['Fast', 'Slow burn'],
+      filters: [
+        { genres: [28, 53, 80] },
+        { genres: [18, 9648], voteAvg: 7.3 }
+      ]},
+    { text: 'Revenge or Redemption?', options: ['Revenge', 'Redemption'],
+      filters: [
+        { genres: [80, 53, 28] },
+        { genres: [18, 36], voteAvg: 7.2 }
+      ]},
+    { text: 'Dream or Reality?', options: ['Dream', 'Reality'],
+      filters: [
+        { genres: [14, 878, 9648] },
+        { genres: [18, 36] }
+      ]},
+    { text: 'Party or Cozy night?', options: ['Party', 'Cozy night'],
+      filters: [
+        { genres: [35, 10402] },
+        { genres: [10749, 18] }
+      ]},
+    { text: 'Space or Sea?', options: ['Space', 'Sea'],
+      filters: [
+        { genres: [878, 12] },
+        { genres: [12, 53] }
+      ]},
+    { text: 'Myth or Truth?', options: ['Myth', 'Truth'],
+      filters: [
+        { genres: [14, 12] },
+        { genres: [36, 18] }
+      ]},
+    { text: 'Heist or Chase?', options: ['Heist', 'Chase'],
+      filters: [
+        { genres: [80, 53] },
+        { genres: [28, 53] }
+      ]},
+    { text: 'Wit or Heart?', options: ['Wit', 'Heart'],
+      filters: [
+        { genres: [35, 18] },
+        { genres: [10749, 18] }
+      ]},
+    { text: 'Underdog or Legend?', options: ['Underdog', 'Legend'],
+      filters: [
+        { genres: [18, 35] },
+        { genres: [36, 18], voteAvg: 7.1 }
+      ]},
+    { text: 'Neon or Natural?', options: ['Neon', 'Natural'],
+      filters: [
+        { genres: [878, 80, 53] },
+        { genres: [18, 10751] }
+      ]},
+    { text: 'Edge or Comfort?', options: ['Edge', 'Comfort'],
+      filters: [
+        { genres: [53, 27, 9648] },
+        { genres: [35, 10751] }
+      ]},
+    { text: 'Plot twists or Slow reveal?', options: ['Plot twists', 'Slow reveal'],
+      filters: [
+        { genres: [9648, 53] },
+        { genres: [18, 9648], voteAvg: 7.2 }
+      ]},
+    { text: 'Retro or Futuristic?', options: ['Retro', 'Futuristic'],
+      filters: [
+        { genres: [35, 80], yearLte: '2010-12-31' },
+        { genres: [878, 28], yearGte: '2010-01-01' }
+      ]},
+    { text: 'Uplifting or Intense?', options: ['Uplifting', 'Intense'],
+      filters: [
+        { genres: [10751, 35], voteAvg: 6.8 },
+        { genres: [53, 80, 28], voteAvg: 6.8 }
+      ]},
+    { text: 'Grounded or Surreal?', options: ['Grounded', 'Surreal'],
+      filters: [
+        { genres: [18, 36] },
+        { genres: [14, 878, 9648] }
+      ]},
+    { text: 'Black coffee or Milk tea?', options: ['Black coffee', 'Milk tea'],
+      filters: [
+        { genres: [80, 53], voteAvg: 7.0 },
+        { genres: [35, 10749], voteAvg: 6.8 }
+      ]},
+    { text: 'Storm or Calm?', options: ['Storm', 'Calm'],
+      filters: [
+        { genres: [53, 28, 12] },
+        { genres: [18, 10749], voteAvg: 7.0 }
+      ]},
+    { text: 'Comedy or Tension?', options: ['Comedy', 'Tension'],
+      filters: [
+        { genres: [35, 10751] },
+        { genres: [53, 9648] }
+      ]},
+    { text: 'Dream job or Escape?', options: ['Dream job', 'Escape'],
+      filters: [
+        { genres: [18, 35] },
+        { genres: [12, 53] }
+      ]},
+    { text: 'Hand-drawn or CGI?', options: ['Hand-drawn', 'CGI'],
+      filters: [
+        { genres: [16, 10751], yearLte: '2012-12-31' },
+        { genres: [16, 14], yearGte: '2012-01-01' }
+      ]},
+    { text: 'Morning light or Midnight?', options: ['Morning light', 'Midnight'],
+      filters: [
+        { genres: [10749, 18] },
+        { genres: [27, 53, 9648] }
+      ]},
+    { text: 'Minimal dialogue or Talky?', options: ['Minimal', 'Talky'],
+      filters: [
+        { genres: [12, 53], voteAvg: 7.0 },
+        { genres: [18, 35], voteAvg: 7.0 }
+      ]},
+    { text: 'Classic hero or Antihero?', options: ['Classic hero', 'Antihero'],
+      filters: [
+        { genres: [12, 28], voteAvg: 6.8 },
+        { genres: [80, 53], voteAvg: 6.8 }
+      ]},
 ];
 
 // Shuffle and pick 3 questions per session
@@ -645,7 +922,7 @@ const loadingMessages = [
 // =============================================
 function buildFilters(answers) {
     let genres = new Set();
-    let yearGte = '1950-01-01';
+    let yearGte = '1990-01-01';
     let yearLte = '2026-12-31';
     let voteAvg = 6.0;
 
@@ -656,6 +933,9 @@ function buildFilters(answers) {
         if (f.yearLte && f.yearLte < yearLte) yearLte = f.yearLte;
         if (f.voteAvg && f.voteAvg > voteAvg) voteAvg = f.voteAvg;
     });
+
+    if (yearGte < '1990-01-01') yearGte = '1990-01-01';
+    if (yearLte < '1990-01-01') yearLte = '1990-12-31';
 
     // Pick top 3 genres (TMDB allows comma-separated OR via pipe)
     const genreArr = [...genres];
@@ -699,6 +979,7 @@ let currentQuestion = 0;
 let answers = [];
 let lastResults = [];
 let lastResultIndex = 0;
+let currentMovie = null;
 
 // =============================================
 //  SCREEN TRANSITIONS
@@ -840,7 +1121,36 @@ function showResult() {
     document.getElementById('resultHook').textContent =
         '"' + getHook(answers) + '"';
 
+    currentMovie = movie;
     showScreen('result');
+}
+
+function openMovieModal(movie) {
+    const modal = document.getElementById('movieModal');
+    document.getElementById('modalTitle').textContent = movie.title || 'Untitled';
+    const year = movie.release_date ? movie.release_date.split('-')[0] : '—';
+    const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
+    document.getElementById('modalMeta').textContent = `${year}  ·  ${rating}/10`;
+    document.getElementById('modalOverview').textContent =
+        movie.overview && movie.overview.trim().length
+            ? movie.overview
+            : 'No synopsis available yet.';
+
+    const modalPoster = document.getElementById('modalPoster');
+    if (movie.poster_path) {
+        modalPoster.src = TMDB_IMG + movie.poster_path;
+        modalPoster.alt = movie.title;
+    } else {
+        modalPoster.src = '';
+        modalPoster.alt = 'No poster available';
+    }
+
+    modal.showModal();
+}
+
+function closeMovieModal() {
+    const modal = document.getElementById('movieModal');
+    if (modal.open) modal.close();
 }
 
 function watchAgain() {
@@ -850,6 +1160,19 @@ function watchAgain() {
 function startOver() {
     showScreen('landing');
 }
+
+// =============================================
+//  MODAL EVENTS
+// =============================================
+document.getElementById('resultPoster').addEventListener('click', () => {
+    if (currentMovie) openMovieModal(currentMovie);
+});
+
+document.getElementById('modalClose').addEventListener('click', closeMovieModal);
+
+document.getElementById('movieModal').addEventListener('click', (e) => {
+    if (e.target.id === 'movieModal') closeMovieModal();
+});
 
 // =============================================
 //  INIT — load token from config.js
