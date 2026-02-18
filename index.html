@@ -26,7 +26,7 @@
     --text: #f0f0f0;
     --text-dim: rgba(255, 255, 255, 0.5);
     --text-muted: rgba(255, 255, 255, 0.3);
-    --blue: #3b82f6;
+    --blue: #ec4899;
     --pink: #ec4899;
     --orange: #f97316;
     --yellow: #eab308;
@@ -85,41 +85,70 @@ body::before {
 }
 
 /* =============================================
-   QUESTION SCREEN DECORATIONS
+   SVG STICKER DECORATIONS
    ============================================= */
-.question-deco {
+.sticker {
     position: fixed;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.5s ease;
     z-index: 0;
+    opacity: 0;
+    transition: opacity 0.6s ease;
 }
 
-.question-deco img {
+.sticker.visible {
+    opacity: 0.18;
+}
+
+.sticker svg {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    display: block;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-.question-deco.visible {
-    opacity: 0.35;
+.sticker-heart {
+    width: 90px; height: 90px;
+    top: 8%; left: 6%;
+    animation: floatA 6s ease-in-out infinite;
 }
 
-.deco-popcorn {
-    width: 340px;
-    height: 340px;
-    top: -5%;
-    right: -8%;
+.sticker-popcorn {
+    width: 110px; height: 110px;
+    top: 5%; right: 5%;
     animation: floatB 7s ease-in-out infinite;
 }
 
-.deco-reel {
-    width: 320px;
-    height: 320px;
-    bottom: -5%;
-    left: -8%;
+.sticker-thumbup {
+    width: 80px; height: 80px;
+    bottom: 12%; left: 8%;
     animation: floatC 8s ease-in-out infinite;
+}
+
+.sticker-star {
+    width: 70px; height: 70px;
+    bottom: 8%; right: 7%;
+    animation: floatA 5.5s ease-in-out infinite;
+}
+
+.sticker-clap {
+    width: 95px; height: 95px;
+    top: 50%; left: 3%;
+    transform: translateY(-50%);
+    animation: floatB 6.5s ease-in-out infinite;
+}
+
+.sticker-bolt {
+    width: 65px; height: 65px;
+    top: 45%; right: 4%;
+    animation: floatC 7.5s ease-in-out infinite;
+}
+
+@keyframes floatA {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-10px) rotate(3deg); }
 }
 
 @keyframes floatB {
@@ -133,13 +162,21 @@ body::before {
 }
 
 @media (max-width: 480px) {
-    .deco-popcorn { width: 220px; height: 220px; top: -3%; right: -15%; }
-    .deco-reel { width: 200px; height: 200px; bottom: -3%; left: -15%; }
+    .sticker-heart { width: 60px; height: 60px; top: 5%; left: 3%; }
+    .sticker-popcorn { width: 75px; height: 75px; top: 3%; right: 2%; }
+    .sticker-thumbup { width: 55px; height: 55px; bottom: 8%; left: 4%; }
+    .sticker-star { width: 50px; height: 50px; bottom: 5%; right: 4%; }
+    .sticker-clap { width: 65px; height: 65px; left: 1%; }
+    .sticker-bolt { width: 45px; height: 45px; right: 2%; }
 }
 
 @media (min-width: 768px) {
-    .deco-popcorn { width: 420px; height: 420px; top: -8%; right: -6%; }
-    .deco-reel { width: 400px; height: 400px; bottom: -8%; left: -6%; }
+    .sticker-heart { width: 120px; height: 120px; }
+    .sticker-popcorn { width: 140px; height: 140px; }
+    .sticker-thumbup { width: 100px; height: 100px; }
+    .sticker-star { width: 90px; height: 90px; }
+    .sticker-clap { width: 120px; height: 120px; }
+    .sticker-bolt { width: 85px; height: 85px; }
 }
 
 /* =============================================
@@ -663,9 +700,25 @@ body::before {
         <button class="btn-primary" onclick="startOracle()">Consult the Oracle</button>
     </div>
 
-    <!-- QUESTION DECORATIONS (positioned fixed, toggled by JS) -->
-    <div class="question-deco deco-popcorn" id="decoPopcorn"><img src="popcorn.png" alt="" aria-hidden="true"></div>
-    <div class="question-deco deco-reel" id="decoReel"><img src="reel.png" alt="" aria-hidden="true"></div>
+    <!-- SVG STICKER DECORATIONS -->
+    <div class="sticker sticker-heart" id="stickerHeart">
+        <svg viewBox="0 0 48 48"><path d="M24 42s-18-10.8-18-22.2C6 12.6 11.4 8 17.4 8c3.6 0 5.4 1.8 6.6 3.6C25.2 9.8 27 8 30.6 8 36.6 8 42 12.6 42 19.8 42 31.2 24 42 24 42z"/></svg>
+    </div>
+    <div class="sticker sticker-popcorn" id="stickerPopcorn">
+        <svg viewBox="0 0 48 48"><path d="M16 18l-3 26h22l-3-26"/><path d="M14 18c0-4 2-7 5-8-1-2 0-5 3-6s6 1 6 1 2-3 5-2 4 4 3 6c3 1 5 4 5 8H14z"/><circle cx="20" cy="12" r="1.5"/><circle cx="28" cy="11" r="1.5"/><circle cx="24" cy="8" r="1.5"/></svg>
+    </div>
+    <div class="sticker sticker-thumbup" id="stickerThumbup">
+        <svg viewBox="0 0 48 48"><path d="M10 22v18h6V22h-6zm8 18h14c2.2 0 4-1.4 4.6-3.4l3.2-10.4c.8-2.6-1.2-5.2-3.8-5.2H27l1.6-7.6c.4-1.6-.4-3.4-1.8-4.2L25 8 14 22"/></svg>
+    </div>
+    <div class="sticker sticker-star" id="stickerStar">
+        <svg viewBox="0 0 48 48"><path d="M24 4l6.2 12.6L44 18.4l-10 9.8 2.4 13.8L24 35.6 11.6 42l2.4-13.8-10-9.8 13.8-1.8z"/></svg>
+    </div>
+    <div class="sticker sticker-clap" id="stickerClap">
+        <svg viewBox="0 0 48 48"><rect x="8" y="6" width="32" height="28" rx="2"/><line x1="8" y1="14" x2="40" y2="14"/><line x1="20" y1="6" x2="16" y2="14"/><rect x="14" y="34" width="20" height="4" rx="1"/><rect x="18" y="38" width="12" height="4" rx="1"/></svg>
+    </div>
+    <div class="sticker sticker-bolt" id="stickerBolt">
+        <svg viewBox="0 0 48 48"><path d="M28 4L12 26h12L20 44 36 22H24z"/></svg>
+    </div>
 
     <!-- QUESTION -->
     <div class="screen" id="question">
@@ -958,6 +1011,91 @@ const questionPool = [
         { genres: [12, 28], voteAvg: 6.8 },
         { genres: [80, 53], voteAvg: 6.8 }
       ]},
+    { text: 'Vinyl or Streaming?', options: ['Vinyl', 'Streaming'],
+      filters: [
+        { genres: [18, 10402], yearLte: '2005-12-31' },
+        { genres: [35, 878], yearGte: '2015-01-01' }
+      ]},
+    { text: 'Rooftop or Basement?', options: ['Rooftop', 'Basement'],
+      filters: [
+        { genres: [10749, 12] },
+        { genres: [27, 9648, 53] }
+      ]},
+    { text: 'Compass or Map?', options: ['Compass', 'Map'],
+      filters: [
+        { genres: [12, 14] },
+        { genres: [53, 80], voteAvg: 7.0 }
+      ]},
+    { text: 'First chapter or Last page?', options: ['First chapter', 'Last page'],
+      filters: [
+        { genres: [12, 14, 878] },
+        { genres: [18, 36], voteAvg: 7.2 }
+      ]},
+    { text: 'Candlelight or Neon?', options: ['Candlelight', 'Neon'],
+      filters: [
+        { genres: [10749, 18, 36] },
+        { genres: [878, 80, 28] }
+      ]},
+    { text: 'Pen or Sword?', options: ['Pen', 'Sword'],
+      filters: [
+        { genres: [18, 9648], voteAvg: 7.0 },
+        { genres: [28, 12, 14] }
+      ]},
+    { text: 'Puzzle or Instinct?', options: ['Puzzle', 'Instinct'],
+      filters: [
+        { genres: [9648, 878] },
+        { genres: [28, 12, 53] }
+      ]},
+    { text: 'Mask or Mirror?', options: ['Mask', 'Mirror'],
+      filters: [
+        { genres: [9648, 53, 80] },
+        { genres: [18, 10749] }
+      ]},
+    { text: 'Library or Arena?', options: ['Library', 'Arena'],
+      filters: [
+        { genres: [9648, 18, 36] },
+        { genres: [28, 12] }
+      ]},
+    { text: 'Old film or Fresh release?', options: ['Old film', 'Fresh release'],
+      filters: [
+        { genres: [18, 36], yearLte: '2005-12-31' },
+        { genres: [28, 878, 35], yearGte: '2020-01-01' }
+      ]},
+    { text: 'Fireplace or Bonfire?', options: ['Fireplace', 'Bonfire'],
+      filters: [
+        { genres: [10749, 18] },
+        { genres: [12, 28, 35] }
+      ]},
+    { text: 'Whisper or Shout?', options: ['Whisper', 'Shout'],
+      filters: [
+        { genres: [9648, 18], voteAvg: 7.0 },
+        { genres: [28, 35, 10402] }
+      ]},
+    { text: 'Labyrinth or Highway?', options: ['Labyrinth', 'Highway'],
+      filters: [
+        { genres: [9648, 14, 878] },
+        { genres: [12, 28, 35] }
+      ]},
+    { text: 'Piano or Drums?', options: ['Piano', 'Drums'],
+      filters: [
+        { genres: [18, 10749, 10402] },
+        { genres: [28, 53, 80] }
+      ]},
+    { text: 'Ghost or Robot?', options: ['Ghost', 'Robot'],
+      filters: [
+        { genres: [27, 14, 9648] },
+        { genres: [878, 28] }
+      ]},
+    { text: 'Silk or Leather?', options: ['Silk', 'Leather'],
+      filters: [
+        { genres: [10749, 18] },
+        { genres: [80, 28, 53] }
+      ]},
+    { text: 'Telescope or Microscope?', options: ['Telescope', 'Microscope'],
+      filters: [
+        { genres: [878, 12] },
+        { genres: [9648, 53, 80] }
+      ]},
 ];
 
 // Shuffle and pick 3 questions per session
@@ -1052,9 +1190,9 @@ function showScreen(id) {
     el.offsetHeight; // reflow
     el.style.animation = '';
 
-    // Show/hide question decorations
-    const decos = document.querySelectorAll('.question-deco');
-    decos.forEach(d => d.classList.toggle('visible', id === 'question'));
+    // Show/hide SVG stickers on question + landing screens
+    const stickers = document.querySelectorAll('.sticker');
+    stickers.forEach(s => s.classList.toggle('visible', id === 'question' || id === 'landing'));
 }
 
 // =============================================
@@ -1234,6 +1372,9 @@ document.getElementById('movieModal').addEventListener('click', (e) => {
 // =============================================
 //  INIT — load token from config.js
 // =============================================
+// Init: show stickers on landing
+document.querySelectorAll('.sticker').forEach(s => s.classList.add('visible'));
+
 (function() {
     const script = document.createElement('script');
     script.src = 'config.js';
