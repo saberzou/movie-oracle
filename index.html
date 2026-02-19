@@ -447,7 +447,7 @@ body::before {
 }
 
 .result-poster.poster-loaded::after {
-    animation: hintShimmer 5s ease-in-out 2s infinite;
+    animation: hintShimmer 6s ease-in-out 2s 1;
 }
 
 @keyframes shimmer {
@@ -456,10 +456,10 @@ body::before {
 }
 
 @keyframes hintShimmer {
-    0%, 65%, 100% { background-position: 200% 0; opacity: 0; }
-    70% { opacity: 1; }
+    0%, 80% { background-position: 200% 0; opacity: 0; }
     85% { opacity: 1; }
-    90% { background-position: -200% 0; opacity: 0; }
+    95% { background-position: -200% 0; opacity: 0; }
+    100% { background-position: -200% 0; opacity: 0; }
 }
 
 .result-title {
@@ -494,46 +494,43 @@ body::before {
 /* =============================================
    RESULT SCREEN — magic move layout
    ============================================= */
-#result {
+.result-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 28px;
     position: relative;
-    overflow: visible;
+    min-height: 330px;
 }
 
 #result .result-poster {
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), margin 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 2;
-}
-
-#result.details-open .result-poster {
-    /* desktop: just shift left a bit */
-    transform: translateX(-30px) rotate(-2deg);
+    flex-shrink: 0;
 }
 
 .result-details {
-    width: 100%;
-    max-width: 400px;
-    max-height: 0;
+    width: 0;
+    max-width: 280px;
     overflow: hidden;
     opacity: 0;
-    margin-bottom: 0;
-    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease 0.1s, margin 0.5s ease;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease 0.15s;
+    flex-shrink: 0;
 }
 
 .result-details.expanded {
-    max-height: 500px;
+    width: 280px;
     opacity: 1;
-    margin-bottom: 28px;
 }
 
 .details-inner {
+    width: 280px;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius);
     text-align: left;
-    transform: translateX(40px);
+    transform: translateX(30px);
     opacity: 0;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s, opacity 0.4s ease 0.2s;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s, opacity 0.4s ease 0.25s;
 }
 
 .result-details.expanded .details-inner {
@@ -542,23 +539,50 @@ body::before {
 }
 
 .details-overview {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     line-height: 1.65;
     color: var(--text-dim);
     margin-bottom: 12px;
 }
 
 .details-why {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--purple);
     font-style: italic;
     line-height: 1.5;
 }
 
-/* Mobile magic move: poster slides left, 1/3 off-screen, tilted */
+/* Mobile: poster slides half off left edge */
 @media (max-width: 480px) {
+    .result-top {
+        justify-content: flex-start;
+        overflow: visible;
+        min-height: 270px;
+    }
+
     #result.details-open .result-poster {
-        transform: translateX(-45%) rotate(-4deg);
+        transform: translateX(calc(-50% - 12px)) rotate(-3deg);
+    }
+
+    .result-details.expanded {
+        width: 55vw;
+        max-width: 55vw;
+    }
+
+    .details-inner {
+        width: auto;
+        padding: 16px 12px;
+    }
+
+    .details-overview {
+        font-size: 0.82rem;
+    }
+}
+
+/* Desktop: poster shifts left, info appears beside it */
+@media (min-width: 481px) {
+    #result.details-open .result-poster {
+        transform: translateX(-40px) rotate(-2deg);
     }
 }
 
@@ -672,18 +696,20 @@ body::before {
 
     <!-- RESULT -->
     <div class="screen" id="result">
-        <div class="result-poster" id="resultPoster">
-            <img id="posterImg" src="" alt="Movie poster">
+        <div class="result-top">
+            <div class="result-poster" id="resultPoster">
+                <img id="posterImg" src="" alt="Movie poster">
+            </div>
+            <div class="result-details" id="resultDetails">
+                <div class="details-inner">
+                    <p class="details-overview" id="detailsOverview"></p>
+                    <p class="details-why" id="detailsWhy"></p>
+                </div>
+            </div>
         </div>
         <h2 class="result-title" id="resultTitle"></h2>
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
-        <div class="result-details" id="resultDetails">
-            <div class="details-inner">
-                <p class="details-overview" id="detailsOverview"></p>
-                <p class="details-why" id="detailsWhy"></p>
-            </div>
-        </div>
         <div class="result-actions">
             <button class="btn-primary" onclick="watchAgain()">Next Movie</button>
             <button class="btn-secondary" onclick="startOver()">New Questions</button>
