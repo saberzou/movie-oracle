@@ -447,12 +447,17 @@ body::before {
 }
 
 .result-poster.poster-loaded::after {
-    opacity: 0;
+    animation: hintShimmer 4s ease-in-out 2s infinite;
 }
 
 @keyframes shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
+}
+
+@keyframes hintShimmer {
+    0%, 70%, 100% { opacity: 0; }
+    80%, 90% { opacity: 0.4; }
 }
 
 .result-title {
@@ -525,19 +530,9 @@ body::before {
     line-height: 1.5;
 }
 
-.poster-hint {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 8px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.result-poster:hover + .poster-hint,
-.poster-hint.show {
-    opacity: 1;
+.result-poster:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
 }
 
 /* =============================================
@@ -648,7 +643,6 @@ body::before {
         <div class="result-poster" id="resultPoster">
             <img id="posterImg" src="" alt="Movie poster">
         </div>
-        <div class="poster-hint" id="posterHint">tap poster for details</div>
         <h2 class="result-title" id="resultTitle"></h2>
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
@@ -1286,11 +1280,6 @@ function showResult() {
             ? movie.overview
             : 'No synopsis available yet.';
     document.getElementById('detailsWhy').textContent = getWhyText(movie, answers);
-
-    // Show poster hint briefly
-    const hint = document.getElementById('posterHint');
-    hint.classList.add('show');
-    setTimeout(() => hint.classList.remove('show'), 3000);
 
     currentMovie = movie;
     showScreen('result');
