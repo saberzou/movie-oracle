@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Oracle</title>
     <meta name="description" content="Answer 3 absurd questions. Get a film recommendation that somehow feels right.">
+    <link rel="icon" type="image/png" href="cinema.png">
+    <meta property="og:title" content="Movie Oracle">
+    <meta property="og:description" content="Answer 3 absurd questions. Get a film recommendation that somehow feels right.">
+    <meta property="og:image" content="cinema.png">
+    <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -39,6 +44,7 @@
 html, body {
     height: 100%;
     overflow: hidden;
+    overflow-y: auto;
 }
 
 body {
@@ -102,11 +108,8 @@ body::before {
 .sticker svg {
     width: 100%;
     height: 100%;
-    fill: none;
-    stroke: #fff;
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    fill: #fff;
+    stroke: none;
 }
 
 .sticker-heart {
@@ -482,157 +485,59 @@ body::before {
 }
 
 /* =============================================
-   MOVIE MODAL
+   EXPANDABLE MOVIE DETAILS (inline)
    ============================================= */
-.movie-modal {
-    border: none;
-    padding: 0;
-    background: transparent;
-    position: fixed;
-    inset: 0;
-    margin: auto;
-    width: fit-content;
-    height: fit-content;
-    max-width: 100vw;
-    max-height: 100vh;
-    opacity: 0;
-    transform: scale(0.85);
-    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.movie-modal[open] {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 1;
-    transform: scale(1);
-}
-
-@starting-style {
-    .movie-modal[open] {
-        opacity: 0;
-        transform: scale(0.85);
-    }
-}
-
-.movie-modal::backdrop {
-    background: rgba(0, 0, 0, 0);
-    backdrop-filter: blur(0px);
-    transition: background 0.3s ease, backdrop-filter 0.3s ease;
-}
-
-.movie-modal[open]::backdrop {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(6px);
-}
-
-@starting-style {
-    .movie-modal[open]::backdrop {
-        background: rgba(0, 0, 0, 0);
-        backdrop-filter: blur(0px);
-    }
-}
-
-.modal-card {
-    background: #12121a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    padding: 24px;
-    padding-top: 48px;
-    width: min(560px, 90vw);
-    max-height: 85vh;
-    color: var(--text);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
-    position: relative;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.modal-header {
-    display: flex;
-    align-items: start;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding-right: 40px;
-    text-align: left;
-}
-
-.modal-title {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 1.6rem;
-    text-transform: uppercase;
-    line-height: 1.1;
-    text-align: left;
-}
-
-.modal-meta {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    letter-spacing: 1px;
-    margin-top: 6px;
-    text-align: left;
-}
-
-.modal-close {
-    position: sticky;
-    top: 0;
-    float: right;
-    margin-top: -36px;
-    margin-right: -4px;
-    width: 32px;
-    height: 32px;
-    border-radius: 999px;
-    background: rgba(18, 18, 26, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: var(--text);
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    z-index: 10;
-    outline: none;
-}
-
-.modal-content {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 18px;
-    align-items: start;
-}
-
-.modal-poster {
-    width: 140px;
-    height: 210px;
-    border-radius: 12px;
-    overflow: hidden;
-    background: var(--surface);
-}
-
-.modal-poster img {
+.result-details {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+    max-width: 400px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease, margin 0.4s ease;
+    margin-bottom: 0;
 }
 
-.modal-overview {
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--text-dim);
+.result-details.expanded {
+    max-height: 400px;
+    opacity: 1;
+    margin-bottom: 28px;
+}
+
+.details-inner {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius);
     text-align: left;
 }
 
-@media (max-width: 520px) {
-    .modal-content {
-        grid-template-columns: 1fr;
-    }
+.details-overview {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
 
-    .modal-poster {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 2 / 3;
-    }
+.details-why {
+    font-size: 0.85rem;
+    color: var(--purple);
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.poster-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.result-poster:hover + .poster-hint,
+.poster-hint.show {
+    opacity: 1;
 }
 
 /* =============================================
@@ -700,24 +605,24 @@ body::before {
         <button class="btn-primary" onclick="startOracle()">Consult the Oracle</button>
     </div>
 
-    <!-- SVG STICKER DECORATIONS -->
+    <!-- SVG STICKER DECORATIONS (Lucide filled) -->
     <div class="sticker sticker-heart" id="stickerHeart">
-        <svg viewBox="0 0 48 48"><path d="M24 42s-18-10.8-18-22.2C6 12.6 11.4 8 17.4 8c3.6 0 5.4 1.8 6.6 3.6C25.2 9.8 27 8 30.6 8 36.6 8 42 12.6 42 19.8 42 31.2 24 42 24 42z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/></svg>
     </div>
     <div class="sticker sticker-popcorn" id="stickerPopcorn">
-        <svg viewBox="0 0 48 48"><path d="M16 18l-3 26h22l-3-26"/><path d="M14 18c0-4 2-7 5-8-1-2 0-5 3-6s6 1 6 1 2-3 5-2 4 4 3 6c3 1 5 4 5 8H14z"/><circle cx="20" cy="12" r="1.5"/><circle cx="28" cy="11" r="1.5"/><circle cx="24" cy="8" r="1.5"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M18 8a2 2 0 0 0 0-4 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0 0 4"/><path d="M10 22 9 8h6l-1 14"/><path d="M20 8c.5 0 .9.4.8 1l-2.6 12c-.1.5-.7 1-1.2 1H7c-.6 0-1.1-.4-1.2-1L3.2 9c-.1-.6.3-1 .8-1Z"/></svg>
     </div>
     <div class="sticker sticker-thumbup" id="stickerThumbup">
-        <svg viewBox="0 0 48 48"><path d="M10 22v18h6V22h-6zm8 18h14c2.2 0 4-1.4 4.6-3.4l3.2-10.4c.8-2.6-1.2-5.2-3.8-5.2H27l1.6-7.6c.4-1.6-.4-3.4-1.8-4.2L25 8 14 22"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
     </div>
     <div class="sticker sticker-star" id="stickerStar">
-        <svg viewBox="0 0 48 48"><path d="M24 4l6.2 12.6L44 18.4l-10 9.8 2.4 13.8L24 35.6 11.6 42l2.4-13.8-10-9.8 13.8-1.8z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
     </div>
     <div class="sticker sticker-clap" id="stickerClap">
-        <svg viewBox="0 0 48 48"><rect x="8" y="6" width="32" height="28" rx="2"/><line x1="8" y1="14" x2="40" y2="14"/><line x1="20" y1="6" x2="16" y2="14"/><rect x="14" y="34" width="20" height="4" rx="1"/><rect x="18" y="38" width="12" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 24 24"><path d="m12.296 3.464 3.02 3.956"/><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="m6.18 5.276 3.1 3.899"/></svg>
     </div>
     <div class="sticker sticker-bolt" id="stickerBolt">
-        <svg viewBox="0 0 48 48"><path d="M28 4L12 26h12L20 44 36 22H24z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
     </div>
 
     <!-- QUESTION -->
@@ -743,33 +648,21 @@ body::before {
         <div class="result-poster" id="resultPoster">
             <img id="posterImg" src="" alt="Movie poster">
         </div>
+        <div class="poster-hint" id="posterHint">tap poster for details</div>
         <h2 class="result-title" id="resultTitle"></h2>
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
+        <div class="result-details" id="resultDetails">
+            <div class="details-inner">
+                <p class="details-overview" id="detailsOverview"></p>
+                <p class="details-why" id="detailsWhy"></p>
+            </div>
+        </div>
         <div class="result-actions">
-            <button class="btn-primary" onclick="watchAgain()">Another Pick</button>
-            <button class="btn-secondary" onclick="startOver()">Start Over</button>
+            <button class="btn-primary" onclick="watchAgain()">Next Movie</button>
+            <button class="btn-secondary" onclick="startOver()">New Questions</button>
         </div>
     </div>
-
-    <!-- MOVIE MODAL -->
-    <dialog class="movie-modal" id="movieModal" aria-label="Movie details">
-        <div class="modal-card">
-            <button class="modal-close" id="modalClose" aria-label="Close details">×</button>
-            <div class="modal-header">
-                <div>
-                    <div class="modal-title" id="modalTitle"></div>
-                    <div class="modal-meta" id="modalMeta"></div>
-                </div>
-            </div>
-            <div class="modal-content">
-                <div class="modal-poster">
-                    <img id="modalPoster" src="" alt="Movie poster">
-                </div>
-                <p class="modal-overview" id="modalOverview"></p>
-            </div>
-        </div>
-    </dialog>
 
     <!-- ERROR -->
     <div class="screen" id="error">
@@ -1110,6 +1003,15 @@ const loadingMessages = [
     'Consulting the Oracle...',
     'Reading the film runes...',
     'Divining your perfect match...',
+    'Scanning the archives...',
+    'The prophecy unfolds...',
+    'Decoding your taste...',
+    'Summoning a classic...',
+    'Aligning the reels...',
+    'The Oracle deliberates...',
+    'Peering into the filmverse...',
+    'Your answers speak volumes...',
+    'Almost there...',
 ];
 
 // =============================================
@@ -1149,22 +1051,82 @@ function buildFilters(answers) {
 }
 
 // =============================================
-//  HOOKS — dynamic based on genre mix
+//  HOOKS — genre-aware
 // =============================================
-const hookTemplates = [
+const GENRE_NAMES = {
+    28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',
+    99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',
+    27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',
+    53:'Thriller',10752:'War',37:'Western'
+};
+
+const genreHooks = {
+    27: ["Something watches from the dark. The Oracle dares you.",
+         "Sleep is overrated. This film proves it."],
+    53: ["Your pulse will thank you later.",
+         "The Oracle senses you crave tension. Delivered."],
+    10749: ["A romantic at heart. The Oracle sees through you.",
+            "Love stories hit different when the Oracle picks them."],
+    878: ["The future called. The Oracle answered.",
+          "Your curiosity runs deep. This one rewards it."],
+    18: ["The Oracle found weight in your answers. This film carries it.",
+         "Not every great film is easy. This one earns every minute."],
+    28: ["You chose intensity. The Oracle respects that.",
+         "Adrenaline was written in your answers."],
+    35: ["The Oracle prescribes laughter. No refills needed.",
+         "Life's too short for boring movies. The Oracle agrees."],
+    80: ["The Oracle detects a fascination with the morally grey.",
+         "Rules were made to be broken. This film knows it."],
+    14: ["The Oracle sees a dreamer. This world was built for you.",
+         "Reality is optional. The Oracle prefers it that way."],
+    9648: ["The Oracle loves a puzzle. So do you, apparently.",
+           "Questions without easy answers. The Oracle's specialty."],
+    12: ["Adventure found you. The Oracle just pointed the way.",
+         "Your answers smell like wanderlust."],
+    16: ["Animation isn't just for kids. The Oracle knows better.",
+         "Frame by frame, this one was made for you."],
+};
+
+const defaultHooks = [
     "The Oracle sees exactly what you need. Trust it.",
     "Your answers reveal a hidden craving. This one satisfies it.",
     "An unexpected choice — but the Oracle knows best.",
     "The stars aligned for this recommendation.",
-    "You've got eclectic taste. This film gets you.",
-    "The Oracle rarely picks this one. Consider yourself special.",
     "Bold choices deserve bold cinema.",
     "Your vibe? Unmistakable. Here's your match.",
 ];
 
 function getHook(answers) {
-    const idx = answers.reduce((a, b) => a + b, 0) + answers.length;
-    return hookTemplates[idx % hookTemplates.length];
+    // Collect all genre IDs from the user's answers
+    const selectedGenres = new Set();
+    questions.forEach((q, i) => {
+        const f = q.filters[answers[i]];
+        if (f.genres) f.genres.forEach(g => selectedGenres.add(g));
+    });
+    // Try to find a genre-specific hook
+    for (const gid of selectedGenres) {
+        if (genreHooks[gid]) {
+            const hooks = genreHooks[gid];
+            return hooks[Math.floor(Math.random() * hooks.length)];
+        }
+    }
+    return defaultHooks[Math.floor(Math.random() * defaultHooks.length)];
+}
+
+function getWhyText(movie, answers) {
+    const selectedGenres = new Set();
+    questions.forEach((q, i) => {
+        const f = q.filters[answers[i]];
+        if (f.genres) f.genres.forEach(g => selectedGenres.add(g));
+    });
+    const movieGenres = (movie.genre_ids || [])
+        .filter(g => selectedGenres.has(g))
+        .map(g => GENRE_NAMES[g] || '')
+        .filter(Boolean);
+    if (movieGenres.length > 0) {
+        return `The Oracle matched your ${movieGenres.slice(0, 2).join(' + ')} energy.`;
+    }
+    return 'The Oracle works in mysterious ways.';
 }
 
 // =============================================
@@ -1316,58 +1278,43 @@ function showResult() {
     document.getElementById('resultHook').textContent =
         '"' + getHook(answers) + '"';
 
+    // Inline details
+    const detailsEl = document.getElementById('resultDetails');
+    detailsEl.classList.remove('expanded');
+    document.getElementById('detailsOverview').textContent =
+        movie.overview && movie.overview.trim().length
+            ? movie.overview
+            : 'No synopsis available yet.';
+    document.getElementById('detailsWhy').textContent = getWhyText(movie, answers);
+
+    // Show poster hint briefly
+    const hint = document.getElementById('posterHint');
+    hint.classList.add('show');
+    setTimeout(() => hint.classList.remove('show'), 3000);
+
     currentMovie = movie;
     showScreen('result');
 }
 
-function openMovieModal(movie) {
-    const modal = document.getElementById('movieModal');
-    document.getElementById('modalTitle').textContent = movie.title || 'Untitled';
-    const year = movie.release_date ? movie.release_date.split('-')[0] : '—';
-    const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
-    document.getElementById('modalMeta').textContent = `${year}  ·  ${rating}/10`;
-    document.getElementById('modalOverview').textContent =
-        movie.overview && movie.overview.trim().length
-            ? movie.overview
-            : 'No synopsis available yet.';
-
-    const modalPoster = document.getElementById('modalPoster');
-    if (movie.poster_path) {
-        modalPoster.src = TMDB_IMG + movie.poster_path;
-        modalPoster.alt = movie.title;
-    } else {
-        modalPoster.src = '';
-        modalPoster.alt = 'No poster available';
-    }
-
-    modal.showModal();
-}
-
-function closeMovieModal() {
-    const modal = document.getElementById('movieModal');
-    if (modal.open) modal.close();
+function toggleDetails() {
+    const el = document.getElementById('resultDetails');
+    el.classList.toggle('expanded');
 }
 
 function watchAgain() {
+    document.getElementById('resultDetails').classList.remove('expanded');
     showResult();
 }
 
 function startOver() {
+    document.getElementById('resultDetails').classList.remove('expanded');
     showScreen('landing');
 }
 
 // =============================================
-//  MODAL EVENTS
+//  POSTER CLICK → EXPAND DETAILS
 // =============================================
-document.getElementById('resultPoster').addEventListener('click', () => {
-    if (currentMovie) openMovieModal(currentMovie);
-});
-
-document.getElementById('modalClose').addEventListener('click', closeMovieModal);
-
-document.getElementById('movieModal').addEventListener('click', (e) => {
-    if (e.target.id === 'movieModal') closeMovieModal();
-});
+document.getElementById('resultPoster').addEventListener('click', toggleDetails);
 
 // =============================================
 //  INIT — load token from config.js
