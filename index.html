@@ -91,6 +91,80 @@ body::before {
 }
 
 /* =============================================
+   DECO IMAGES — edge-bleeding background elements
+   ============================================= */
+.deco {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.2;
+    mix-blend-mode: screen;
+}
+
+.deco-wtf {
+    width: 220px;
+    top: 5%;
+    left: -70px;
+    animation: floatA 7s ease-in-out infinite;
+}
+
+.deco-alien {
+    width: 200px;
+    top: 8%;
+    right: -65px;
+    animation: floatB 8s ease-in-out infinite;
+}
+
+.deco-cursor {
+    width: 160px;
+    bottom: 10%;
+    left: -50px;
+    animation: floatC 6.5s ease-in-out infinite;
+}
+
+.deco-tv {
+    width: 240px;
+    bottom: 5%;
+    right: -80px;
+    animation: floatA 9s ease-in-out infinite;
+}
+
+.deco img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+@keyframes floatA {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+}
+
+@keyframes floatB {
+    0%, 100% { transform: translateY(0) rotate(2deg); }
+    50% { transform: translateY(-10px) rotate(-3deg); }
+}
+
+@keyframes floatC {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-14px) rotate(3deg); }
+}
+
+@media (max-width: 480px) {
+    .deco-wtf { width: 140px; left: -45px; }
+    .deco-alien { width: 130px; right: -42px; }
+    .deco-cursor { width: 110px; left: -35px; }
+    .deco-tv { width: 160px; right: -52px; }
+}
+
+@media (min-width: 768px) {
+    .deco-wtf { width: 280px; left: -90px; }
+    .deco-alien { width: 260px; right: -85px; }
+    .deco-cursor { width: 200px; left: -65px; }
+    .deco-tv { width: 300px; right: -100px; }
+}
+
+/* =============================================
    SCREENS — transition between states
    ============================================= */
 .screen {
@@ -549,6 +623,12 @@ body::before {
 <body>
 
 <div class="app">
+
+    <!-- DECO IMAGES -->
+    <div class="deco deco-wtf"><img src="deco-wtf.png" alt=""></div>
+    <div class="deco deco-alien"><img src="deco-alien.png" alt=""></div>
+    <div class="deco deco-cursor"><img src="deco-cursor.png" alt=""></div>
+    <div class="deco deco-tv"><img src="deco-tv.png" alt=""></div>
 
     <!-- LANDING -->
     <div class="screen active" id="landing">
