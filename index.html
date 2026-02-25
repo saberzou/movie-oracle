@@ -609,9 +609,7 @@ body::before {
 // =============================================
 //  CONFIG
 // =============================================
-const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
-let TMDB_TOKEN = '';
 
 // =============================================
 //  QUESTIONS
@@ -1121,13 +1119,8 @@ function answer(choice) {
 }
 
 function tmdbFetch(path, params) {
-    const url = `${TMDB_BASE}${path}?${new URLSearchParams(params)}`;
-    return fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${TMDB_TOKEN}`,
-            'Content-Type': 'application/json',
-        },
-    });
+    const url = `/api/discover?${new URLSearchParams(params)}`;
+    return fetch(url);
 }
 
 async function fetchMovie() {
@@ -1249,27 +1242,7 @@ document.getElementById('resultPoster').addEventListener('click', toggleDetails)
 // =============================================
 //  INIT — load token from config.js
 // =============================================
-// Init
-(function() {
-    const script = document.createElement('script');
-    script.src = 'config.js';
-    script.onerror = () => {
-        console.warn('config.js not found. Create it with your TMDB credentials.');
-        document.getElementById('errorText').textContent =
-            'Missing config.js — add your TMDB API token to get started.';
-        showScreen('error');
-    };
-    script.onload = () => {
-        if (window.TMDB_CONFIG && window.TMDB_CONFIG.accessToken) {
-            TMDB_TOKEN = window.TMDB_CONFIG.accessToken;
-        } else {
-            document.getElementById('errorText').textContent =
-                'Invalid config.js — make sure accessToken is set.';
-            showScreen('error');
-        }
-    };
-    document.head.appendChild(script);
-})();
+// Init — ready
 </script>
 
 </body>
