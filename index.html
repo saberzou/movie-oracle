@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="cinema.png">
     <meta property="og:title" content="Movie Oracle">
     <meta property="og:description" content="Answer 3 absurd questions. Get a film recommendation that somehow feels right.">
-    <meta property="og:image" content="cinema.png">
+    <meta property="og:image" content="https://saberzou.github.io/movie-oracle/cinema.png">
     <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -723,7 +723,7 @@ body::before {
 // =============================================
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
-let TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzNzgzOTc5YzYwMjEzNzhlMzQ2MTI3NGE0MjhlN2M2NCIsIm5iZiI6MTc1MTQ1NDk1My43ODksInN1YiI6IjY4NjUxNGU5ODEwNWJhMmYwNzZmNjJhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Nq87nfCN7RIsnqn1un0Aac1w1vwERMB9WZGxrvz4Ee4';
+let TMDB_TOKEN = '';
 
 // =============================================
 //  QUESTIONS
@@ -1371,10 +1371,17 @@ document.querySelectorAll('.sticker').forEach(s => s.classList.add('visible'));
     script.src = 'config.js';
     script.onerror = () => {
         console.warn('config.js not found. Create it with your TMDB credentials.');
+        document.getElementById('errorText').textContent =
+            'Missing config.js — add your TMDB API token to get started.';
+        showScreen('error');
     };
     script.onload = () => {
-        if (window.TMDB_CONFIG) {
-            TMDB_TOKEN = window.TMDB_CONFIG.accessToken || '';
+        if (window.TMDB_CONFIG && window.TMDB_CONFIG.accessToken) {
+            TMDB_TOKEN = window.TMDB_CONFIG.accessToken;
+        } else {
+            document.getElementById('errorText').textContent =
+                'Invalid config.js — make sure accessToken is set.';
+            showScreen('error');
         }
     };
     document.head.appendChild(script);
