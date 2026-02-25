@@ -1164,7 +1164,9 @@ function showScreen(id) {
     el.offsetHeight; // reflow
     el.style.animation = '';
 
-    // Show/hide stickers — removed
+    // Show/hide deco images
+    const decos = document.querySelectorAll('.deco');
+    decos.forEach(d => d.style.display = (id === 'result') ? 'none' : '');
 }
 
 // =============================================
