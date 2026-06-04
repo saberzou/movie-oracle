@@ -20,16 +20,23 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 
-// Helix tuning constants — designed for portrait viewports primarily.
-const HELIX_RADIUS = 0.78;          // tighter — spiral reads as a vertical COLUMN, neighbors overlap focused edges
-const HELIX_PITCH = 0.82;           // tight vertical pitch so ±3 posters stack visibly
-const ANGLE_STEP = (Math.PI / 180) * 20;  // narrower lateral fan now that radius is smaller
-const POSTER_W = 0.92;              // smaller — the curve is the hero
-const POSTER_H = POSTER_W * 1.5;    // 2:3 movie poster ratio
-const VISIBLE_FALLOFF = 6;          // see more neighbors so the spiral is unmistakable
-const SNAP_DURATION = 420;          // ms
-const DRAG_SENSITIVITY = 0.006;     // rad per pixel
-const WHEEL_SENSITIVITY = 0.0024;   // rad per wheel delta
+// Helix tuning constants — TRUE CYLINDER spec.
+// Posters are tangent planes on a vertical cylinder. Camera looks at the cylinder
+// from outside its front face. Back-half posters are physically behind the cylinder
+// surface and occluded by the focused poster via the depth test.
+//
+// 20 posters distributed around a helix. Lower revs = neighbors closer to the focused poster
+// in viewport; higher revs = more 'spiral stair' feel. 1.5 revs = 27°/poster (sweet spot for portrait).
+const CYL_RADIUS = 1.05;            // cylinder radius — adjacent posters partially overlap focused
+const HELIX_PITCH = 0.62;            // vertical drift per poster (gives staircase descent)
+const REVS_PER_LOOP = 1.0;           // exactly one full revolution across all 20 posters = 18°/poster
+const POSTER_W = 1.05;               // poster plane width
+const POSTER_H = POSTER_W * 1.5;     // 2:3 movie poster ratio
+const VISIBLE_FALLOFF = 5;           // posters this many steps away from focus get faded out
+const BACK_HIDE = 14;                // posters more than this many steps away hidden entirely (far back of cylinder)
+const SNAP_DURATION = 420;           // ms
+const DRAG_SENSITIVITY = 0.006;      // rad per pixel
+const WHEEL_SENSITIVITY = 0.0024;    // rad per wheel delta
 
 // Vertex shader — standard with focus-distance varying
 const POSTER_VERT = /* glsl */ `
@@ -42,6 +49,7 @@ const POSTER_VERT = /* glsl */ `
 
 // Fragment shader: samples texture with mipmap bias for fake DOF,
 // applies desaturation + dim based on focusDelta uniform,
+// kills back-of-cylinder posters via facing uniform,
 // adds animated directional rim catching the right edge.
 const POSTER_FRAG = /* glsl */ `
   precision highp float;
@@ -50,6 +58,7 @@ const POSTER_FRAG = /* glsl */ `
   uniform float focusDelta;   // 0 at center, grows with distance
   uniform float time;
   uniform float dpr;
+  uniform float facing;       // cos(angleFromCamera): 1 front, 0 edge, -1 back
 
   vec3 desaturate(vec3 c, float amt) {
     float g = dot(c, vec3(0.299, 0.587, 0.114));
@@ -57,19 +66,28 @@ const POSTER_FRAG = /* glsl */ `
   }
 
   void main() {
+    // Kill back-facing posters entirely (they'd show mirrored texture and clutter the back of the cylinder).
+    // Hard cut at facing < 0.05 (just past edge-on).
+    if (facing < 0.05) discard;
+
     // Mipmap bias: higher delta = blurrier sample. Cap so it doesn't go absurd.
-    float bias = clamp(focusDelta * 2.2, 0.0, 5.0);
+    float bias = clamp(focusDelta * 1.6, 0.0, 4.5);
     vec4 tex = texture2D(map, vUv, bias);
 
     // Desaturate non-focused posters
-    float desat = clamp(focusDelta * 0.6, 0.0, 0.6);
+    float desat = clamp(focusDelta * 0.5, 0.0, 0.55);
     vec3 col = desaturate(tex.rgb, desat);
 
-    // Dim based on distance (gentle — we want neighbors visible enough to read the spiral curve)
-    float dim = 1.0 - clamp(focusDelta * 0.16, 0.0, 0.5);
+    // Dim based on distance (gentle)
+    float dim = 1.0 - clamp(focusDelta * 0.18, 0.0, 0.55);
     col *= dim;
 
-    // Animated warm rim (right edge, drifts subtly with time)
+    // Edge-on darkening: as a poster rotates toward its sides on the cylinder,
+    // it picks up less light — fade it as facing -> 0.
+    float edgeShade = smoothstep(0.05, 0.55, facing);
+    col *= mix(0.35, 1.0, edgeShade);
+
+    // Animated warm rim (right edge, drifts subtly with time).
     // Only show on near-focus posters — strong enough to read as a projector beam.
     float rimMask = smoothstep(0.72, 1.0, vUv.x);
     float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
@@ -77,7 +95,10 @@ const POSTER_FRAG = /* glsl */ `
     vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1;
     col += rimColor;
 
-    gl_FragColor = vec4(col, tex.a);
+    // Alpha: full on focused & near-focused front, fade with edge.
+    float alpha = tex.a * edgeShade;
+
+    gl_FragColor = vec4(col, alpha);
   }
 `;
 
@@ -145,17 +166,16 @@ export function mountReel(container, posters, opts = {}) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    42,
+    36,
     container.clientWidth / container.clientHeight,
     0.1,
     100
   );
-  // Camera looks at the helix from outside, pointing at origin
-  // Helix axis is Y; camera sits on +Z
-  const cameraDistance = 7.5;
-  // Camera offset upward + look slightly downward so the helix reads as a 3D spiral,
-  // not a flat carousel. Focused poster sits ON the spiral arc, visibly mid-curve.
-  camera.position.set(0, 0.6, cameraDistance);
+  // Camera sits in front of the cylinder, looking at its front surface.
+  // Cylinder axis is at the world origin (Y-up); camera on +Z, slightly above
+  // for a hint of looking down into the stairwell.
+  const cameraDistance = 4.0; // distance from cylinder CENTER
+  camera.position.set(0, 0.7, cameraDistance);
   camera.lookAt(0, 0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
@@ -198,12 +218,15 @@ export function mountReel(container, posters, opts = {}) {
   for (let i = 0; i < N; i++) {
     const mat = new THREE.ShaderMaterial({
       transparent: true,
-      depthWrite: false,
+      depthWrite: true,      // write depth so back-of-cylinder posters are occluded by focused
+      depthTest: true,       // honor depth when rendering
+      side: THREE.DoubleSide, // see poster back when it rotates around
       uniforms: {
         map: { value: placeholderTex },
         focusDelta: { value: Math.abs(i) },
         time: { value: 0 },
         dpr: { value: renderer.getPixelRatio() },
+        facing: { value: 1.0 }, // 1 front-facing, 0 back-facing (alpha kill)
       },
       vertexShader: POSTER_VERT,
       fragmentShader: POSTER_FRAG,
@@ -233,29 +256,41 @@ export function mountReel(container, posters, opts = {}) {
   let lastFocusIdx = -1;
 
   function placeMeshes() {
+    // True cylinder: each poster has a base angle theta_i = i * (2*PI*REVS_PER_LOOP / N),
+    // and the whole cylinder rotates so the poster at round(rotation) faces the camera.
+    const ANG_PER = (2 * Math.PI * REVS_PER_LOOP) / N;
+
     for (let i = 0; i < N; i++) {
-      // Position relative to current rotation
-      const delta = i - rotation; // can be fractional
-      const angle = delta * ANGLE_STEP;
+      const delta = i - rotation; // fractional during snap, integer when settled
+      const angle = delta * ANG_PER; // 0 at focus; ± walks around the cylinder
       const y = -delta * HELIX_PITCH;
 
       const m = meshes[i].mesh;
+      // Tangent plane on the cylinder surface:
+      // At angle=0, poster sits at (0, y, +CYL_RADIUS) facing camera.
+      // At angle=π, poster sits at (0, y, -CYL_RADIUS) facing AWAY from camera.
       m.position.set(
-        Math.sin(angle) * HELIX_RADIUS,
+        Math.sin(angle) * CYL_RADIUS,
         y,
-        Math.cos(angle) * HELIX_RADIUS // genuine helix — focused poster orbits the same axis as the rest
+        Math.cos(angle) * CYL_RADIUS
       );
-      m.rotation.y = -angle;
+      // Poster face points outward from the cylinder axis.
+      m.rotation.y = angle;
 
-      // Opacity / focus uniform
+      // Facing factor: cos(angle) = 1 at focus, 0 at sides (edge-on), -1 at back.
+      const facing = Math.cos(angle);
       const absDelta = Math.abs(delta);
-      meshes[i].material.uniforms.focusDelta.value = absDelta;
 
-      // Hide far posters entirely (still in scene tree for predictable draw count
-      // but with very low alpha — we let the shader's dim term handle it)
-      // Also fade out beyond VISIBLE_FALLOFF
-      const fade = 1.0 - Math.min(absDelta / VISIBLE_FALLOFF, 1.0);
-      m.visible = fade > 0.02;
+      meshes[i].material.uniforms.focusDelta.value = absDelta;
+      meshes[i].material.uniforms.facing.value = facing;
+
+      // Manual render order: back posters first, front last, so overlaps composite correctly.
+      m.renderOrder = facing * 10;
+
+      // Cull posters far around the cylinder (mostly hidden behind it),
+      // and hide any poster whose actual image hasn't loaded yet (don't show grey placeholder).
+      const hasArt = meshes[i].currentSize !== null;
+      m.visible = absDelta <= BACK_HIDE && hasArt;
     }
   }
 
@@ -281,6 +316,7 @@ export function mountReel(container, posters, opts = {}) {
         slot.material.uniforms.map.value = tex;
         slot.currentSize = size;
         slot.loadingSize = null;
+        // Make this slot visible now that art is loaded (placeMeshes will keep it culled if too far)
       })
       .catch(() => {
         slot.loadingSize = null;
@@ -293,10 +329,9 @@ export function mountReel(container, posters, opts = {}) {
       const delta = Math.abs(i - focusIdx);
       if (delta <= 1) {
         loadFor(i, 'w500');
-      } else if (delta <= 5) {
+      } else if (delta <= BACK_HIDE) {
         loadFor(i, 'w185');
       }
-      // farther posters wait
     }
   }
 
@@ -398,10 +433,13 @@ export function mountReel(container, posters, opts = {}) {
   ro.observe(container);
 
   // ---- intro spin ----
-  // Land on idx 2 (not 0) so users immediately see posters above AND below the focused one,
-  // making the helix structure obvious from first frame.
+  // Land on a mid-index so users immediately see posters wrapping both directions.
   rotation = 0;
-  startSnap(2);
+  startSnap(Math.min(3, N - 1));
+
+  // Preload ALL posters at w185 up front so the cylinder doesn't show blank slots.
+  // 20 * ~30KB = ~600KB — still mobile-friendly, and the cylinder feel demands density.
+  for (let i = 0; i < N; i++) loadFor(i, 'w185');
 
   // ---- render loop ----
   let rafId = 0;

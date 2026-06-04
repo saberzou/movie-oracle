@@ -1164,7 +1164,7 @@ async function initReel() {
             onSelect: (movie) => selectTrendingMovie(movie),
         });
         // Initial meta matches reel.js intro target (idx 2)
-        updateMeta(movies[Math.min(2, movies.length - 1)]);
+        updateMeta(movies[Math.min(3, movies.length - 1)]);
         requestAnimationFrame(() => {
             document.getElementById('reelLoading').classList.add('hidden');
         });
