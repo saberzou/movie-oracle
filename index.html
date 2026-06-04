@@ -813,6 +813,73 @@ body::before {
 }
 
 /* =============================================
+   TRAILER MODAL (v2 lightbox — Saber #15471)
+   ============================================= */
+.trailer-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.trailer-modal[hidden] {
+    display: none;
+}
+
+.trailer-frame-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+    transform: scale(0.92);
+}
+
+.trailer-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+.trailer-close {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top, 0));
+    right: max(16px, env(safe-area-inset-right, 0));
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    font-family: inherit;
+}
+
+.trailer-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.trailer-close:active {
+    transform: scale(0.92);
+}
+
+/* =============================================
    RESULT SCREEN — magic move layout
    ============================================= */
 .result-top {
@@ -1063,6 +1130,14 @@ body::before {
     <div class="screen" id="error">
         <p class="error-text" id="errorText">Something went wrong. The Oracle is resting.</p>
         <button class="btn-secondary" onclick="startOver()">Back to Home</button>
+    </div>
+
+    <!-- TRAILER MODAL -->
+    <div class="trailer-modal" id="trailerModal" hidden>
+        <button class="trailer-close" id="trailerClose" aria-label="Close trailer">×</button>
+        <div class="trailer-frame-wrap">
+            <iframe class="trailer-frame" id="trailerFrame" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        </div>
     </div>
 
 </div>
@@ -1946,8 +2021,51 @@ function openTrailer() {
     const trailerBtn = document.getElementById('trailerBtn');
     const key = trailerBtn.dataset.youtubeKey;
     if (!key) return;
-    window.open(`https://www.youtube.com/watch?v=${key}`, '_blank', 'noopener,noreferrer');
+    const modal = document.getElementById('trailerModal');
+    const frame = document.getElementById('trailerFrame');
+    const wrap = modal.querySelector('.trailer-frame-wrap');
+    // Inject src on open (lazy iframe load — ~200KB only when user asks for it)
+    frame.src = `https://www.youtube-nocookie.com/embed/${key}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    // GSAP fade + scale-in entrance
+    if (window.gsap) {
+        gsap.fromTo(modal, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'power2.out' });
+        gsap.fromTo(wrap, { scale: 0.92, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: 'power3.out' });
+    } else {
+        modal.style.opacity = 1;
+        wrap.style.transform = 'scale(1)';
+    }
 }
+
+function closeTrailer() {
+    const modal = document.getElementById('trailerModal');
+    const frame = document.getElementById('trailerFrame');
+    const wrap = modal.querySelector('.trailer-frame-wrap');
+    const cleanup = () => {
+        modal.hidden = true;
+        // Kill iframe src to stop playback + unload network
+        frame.src = '';
+        document.body.style.overflow = '';
+        if (wrap) wrap.style.transform = '';
+    };
+    if (window.gsap) {
+        gsap.to(wrap, { scale: 0.94, opacity: 0, duration: 0.18, ease: 'power2.in' });
+        gsap.to(modal, { opacity: 0, duration: 0.2, ease: 'power2.in', onComplete: cleanup });
+    } else {
+        cleanup();
+    }
+}
+
+// Modal interactions: close button, backdrop click, escape key
+document.getElementById('trailerClose').addEventListener('click', closeTrailer);
+document.getElementById('trailerModal').addEventListener('click', (e) => {
+    // Close on backdrop tap, not on inner iframe-wrap or close button
+    if (e.target.id === 'trailerModal') closeTrailer();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('trailerModal').hidden) closeTrailer();
+});
 
 // Expose handlers used inline in HTML (module scripts don't auto-globalize)
 window.startOracle = startOracle;
@@ -1955,6 +2073,7 @@ window.answer = answer;
 window.watchAgain = watchAgain;
 window.startOver = startOver;
 window.openTrailer = openTrailer;
+window.closeTrailer = closeTrailer;
 
 // =============================================
 //  POSTER CLICK → EXPAND DETAILS
