@@ -75,19 +75,20 @@ const POSTER_FRAG = /* glsl */ `
     vec2 uv = isBack ? vec2(1.0 - vUv.x, vUv.y) : vUv;
     vec4 tex = texture2D(map, uv, bias);
 
-    // Desaturate non-focused posters
-    float desat = clamp(focusDelta * 0.5, 0.0, 0.55);
+    // Desaturate non-focused posters (gentler)
+    float desat = clamp(focusDelta * 0.35, 0.0, 0.40);
     vec3 col = desaturate(tex.rgb, desat);
 
-    // Dim based on distance from focus (gentle)
-    float dim = 1.0 - clamp(focusDelta * 0.18, 0.0, 0.55);
+    // Dim based on distance from focus (very gentle) — floor raised per Axel #15315
+    // so side posters read as dim posters, not black silhouettes.
+    float dim = 1.0 - clamp(focusDelta * 0.08, 0.0, 0.30);
     col *= dim;
 
     // Edge-on darkening based on facing magnitude (|facing| = 1 at front/back, 0 at edge).
-    // Posters glancing edge-on get darker; fully back posters get a strong dim + slight cool tint.
+    // Floor raised to 0.65 so glancing-edge posters stay clearly legible as posters.
     float absFacing = abs(facing);
     float edgeShade = smoothstep(0.05, 0.55, absFacing);
-    col *= mix(0.35, 1.0, edgeShade);
+    col *= mix(0.65, 1.0, edgeShade);
 
     if (isBack) {
       // Back of poster: strong dim + slight desaturation + faint paper tint, no rim.
@@ -171,15 +172,15 @@ export function mountReel(container, posters, opts = {}) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    50,
+    55,
     container.clientWidth / container.clientHeight,
     0.1,
     100
   );
-  // Wider FOV + camera back so more of the cylinder circumference is visible
-  // (per Axel #15306: target 5-7 visible posters orbiting the focused one).
-  const cameraDistance = 6.2;
-  camera.position.set(0, 0.8, cameraDistance);
+  // FOV 55 per Axel #15315 — wider lens exposes more cylinder circumference.
+  // Camera distance tuned so focused poster stays ~55% viewport height on mobile.
+  const cameraDistance = 5.5;
+  camera.position.set(0, 0.7, cameraDistance);
   camera.lookAt(0, 0.0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
