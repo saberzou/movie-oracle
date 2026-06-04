@@ -47,6 +47,20 @@ html, body {
     overflow-y: auto;
 }
 
+body.reel-mode {
+    overflow: hidden;
+}
+
+body.reel-mode::before {
+    /* Kill the grid texture on reel view */
+    opacity: 0;
+}
+
+body.reel-mode .deco {
+    /* Kill the floating decos on reel view */
+    display: none !important;
+}
+
 body {
     font-family: 'DM Sans', -apple-system, sans-serif;
     background: var(--bg);
@@ -162,6 +176,283 @@ body::before {
     .deco-alien { width: 260px; right: -85px; }
     .deco-cursor { width: 200px; left: -65px; }
     .deco-tv { width: 300px; right: -100px; }
+}
+
+/* =============================================
+   REEL SCREEN — 3D helix homepage
+   ============================================= */
+.reel-screen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #050507;
+    z-index: 5;
+    display: none;
+}
+
+.reel-screen.active {
+    display: block;
+}
+
+.reel-canvas-host {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.reel-canvas-host canvas {
+    display: block;
+}
+
+/* Soft radial background glow behind the reel (cheap, CSS-only) */
+.reel-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(40, 30, 50, 0.4) 0%, rgba(0,0,0,0) 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.reel-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 24px 0;
+    z-index: 10;
+    pointer-events: none;
+    text-align: center;
+}
+
+.reel-brand {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.85);
+}
+
+.reel-brand-sub {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+/* Pinned focused-poster meta below canvas center */
+.reel-meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 160px;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    padding: 12px 24px;
+    transition: opacity 0.35s ease;
+    background: linear-gradient(transparent, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.75));
+}
+
+.reel-meta.swap {
+    opacity: 0;
+}
+
+.reel-meta-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.7);
+    margin-bottom: 6px;
+}
+
+.reel-meta-sub {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.reel-meta-sub .pink {
+    color: var(--pink);
+}
+
+/* Sticky frosted-glass CTA */
+.reel-cta-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    z-index: 11;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.reel-cta {
+    pointer-events: auto;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--pink);
+    background: rgba(20, 20, 28, 0.55);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-pill);
+    padding: 16px 36px;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reel-cta:hover {
+    transform: scale(1.03);
+    background: rgba(30, 30, 40, 0.7);
+}
+
+.reel-cta:active {
+    transform: scale(0.97);
+}
+
+.reel-cta .arrow {
+    transition: transform 0.2s ease;
+}
+
+.reel-cta:hover .arrow {
+    transform: translateX(4px);
+}
+
+.reel-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 64px;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: hintFade 6s ease forwards 1.5s;
+}
+
+@keyframes hintFade {
+    0% { opacity: 0; transform: translateY(-4px); }
+    20%, 70% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
+}
+
+/* Reel loading state */
+.reel-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 18px;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Archivo Black', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 0.85rem;
+    z-index: 8;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.reel-loading.hidden {
+    opacity: 0;
+}
+
+/* Fallback grid (no WebGL / low perf) */
+.reel-fallback {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    padding: 80px 16px 120px;
+    display: none;
+    z-index: 6;
+}
+
+.reel-fallback.active {
+    display: block;
+}
+
+.reel-fallback-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+@media (min-width: 600px) {
+    .reel-fallback-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.reel-fallback-card {
+    aspect-ratio: 2/3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #1a1a22;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.reel-fallback-card:hover {
+    transform: translateY(-4px);
+}
+
+.reel-fallback-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.reel-fallback-card-title {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 8px 10px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+/* Mobile tuning */
+@media (max-width: 480px) {
+    .reel-meta {
+        bottom: 140px;
+    }
+    .reel-meta-title {
+        font-size: 1.25rem;
+    }
+    .reel-cta {
+        font-size: 0.85rem;
+        padding: 14px 28px;
+    }
 }
 
 /* =============================================
@@ -622,6 +913,29 @@ body::before {
 </head>
 <body>
 
+<!-- REEL HOMEPAGE (3D helix) -->
+<div class="reel-screen active" id="reel">
+    <div class="reel-canvas-host" id="reelCanvasHost"></div>
+    <div class="reel-loading" id="reelLoading">Loading the reel…</div>
+    <div class="reel-header">
+        <div class="reel-brand">Movie Oracle</div>
+        <div class="reel-brand-sub">Trending this week</div>
+    </div>
+    <div class="reel-hint">Swipe · scroll · tap</div>
+    <div class="reel-meta" id="reelMeta">
+        <div class="reel-meta-title" id="reelMetaTitle"></div>
+        <div class="reel-meta-sub" id="reelMetaSub"></div>
+    </div>
+    <div class="reel-cta-bar">
+        <button class="reel-cta" onclick="goToOracle()">
+            Pick for me <span class="arrow">→</span>
+        </button>
+    </div>
+    <div class="reel-fallback" id="reelFallback">
+        <div class="reel-fallback-grid" id="reelFallbackGrid"></div>
+    </div>
+</div>
+
 <div class="app">
 
     <!-- DECO IMAGES -->
@@ -631,7 +945,7 @@ body::before {
     <div class="deco deco-tv"><img src="deco-tv.png" alt=""></div>
 
     <!-- LANDING -->
-    <div class="screen active" id="landing">
+    <div class="screen" id="landing">
         <div class="oracle-symbol"><img src="oracle-star.png" alt="Movie Oracle"></div>
         <h1 class="landing-title">Movie<br>Oracle</h1>
         <p class="landing-subtitle">Answer 3 questions. Get your perfect movie.</p>
@@ -686,11 +1000,180 @@ body::before {
 
 </div>
 
-<script>
+<script type="module">
+import { mountReel, isWebGLAvailable } from './reel.js';
+
 // =============================================
 //  CONFIG
 // =============================================
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
+const TMDB_IMG_W342 = 'https://image.tmdb.org/t/p/w342';
+
+// =============================================
+//  REEL ROUTING + STATE
+// =============================================
+let reelHandle = null;
+let trendingMovies = [];
+let inReelMode = true;
+
+function enterReelMode() {
+    inReelMode = true;
+    document.body.classList.add('reel-mode');
+    document.getElementById('reel').classList.add('active');
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+}
+
+function exitReelMode() {
+    inReelMode = false;
+    document.body.classList.remove('reel-mode');
+    document.getElementById('reel').classList.remove('active');
+}
+
+// CTA: "Pick for me" → start the oracle Q&A flow
+window.goToOracle = function() {
+    exitReelMode();
+    startOracle();
+};
+
+// Reel: tap focused poster → show that movie in the existing result layout
+function selectTrendingMovie(movie) {
+    exitReelMode();
+    lastResults = [movie];
+    lastResultIndex = 0;
+    answers = [];
+    currentMovie = movie;
+    showTrendingResult(movie);
+}
+
+function showTrendingResult(movie) {
+    const posterImg = document.getElementById('posterImg');
+    const posterContainer = document.getElementById('resultPoster');
+    posterImg.classList.remove('loaded');
+    posterContainer.classList.remove('poster-loaded');
+    if (movie.poster_path) {
+        posterImg.onload = () => {
+            posterImg.classList.add('loaded');
+            posterContainer.classList.add('poster-loaded');
+        };
+        posterImg.src = TMDB_IMG + movie.poster_path;
+        posterImg.alt = movie.title;
+    } else {
+        posterImg.src = '';
+        posterImg.alt = 'No poster available';
+    }
+
+    document.getElementById('resultTitle').textContent = movie.title;
+    const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '—');
+    const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
+    document.getElementById('resultMeta').textContent = `${year}  ·  ${rating}/10`;
+    document.getElementById('resultHook').textContent =
+        '"Trending this week. The Oracle gives its blessing."';
+
+    const detailsEl = document.getElementById('resultDetails');
+    detailsEl.classList.remove('expanded');
+    document.getElementById('detailsOverview').textContent =
+        movie.overview && movie.overview.trim().length
+            ? movie.overview
+            : 'No synopsis available yet.';
+    const movieGenres = (movie.genre_ids || [])
+        .map(g => GENRE_NAMES[g] || '')
+        .filter(Boolean)
+        .slice(0, 2);
+    document.getElementById('detailsWhy').textContent =
+        movieGenres.length
+            ? `Trending in ${movieGenres.join(' + ')}.`
+            : 'Trending this week.';
+
+    showScreen('result');
+}
+
+async function fetchTrending() {
+    try {
+        const res = await tmdbFetch('/trending/movie/week', { language: 'en-US' });
+        if (!res.ok) throw new Error('TMDB trending failed');
+        const data = await res.json();
+        return (data.results || []).filter((m) => m.poster_path).slice(0, 20);
+    } catch (e) {
+        console.error('Trending fetch failed:', e);
+        return [];
+    }
+}
+
+function renderFallbackGrid(movies) {
+    const grid = document.getElementById('reelFallbackGrid');
+    grid.innerHTML = '';
+    movies.forEach((m) => {
+        const card = document.createElement('div');
+        card.className = 'reel-fallback-card';
+        const src = m.poster_path ? TMDB_IMG_W342 + m.poster_path : '';
+        card.innerHTML = `
+            ${src ? `<img src="${src}" alt="${escapeHtml(m.title)}" loading="lazy">` : ''}
+            <div class="reel-fallback-card-title">${escapeHtml(m.title)}</div>
+        `;
+        card.addEventListener('click', () => selectTrendingMovie(m));
+        grid.appendChild(card);
+    });
+    document.getElementById('reelFallback').classList.add('active');
+    document.getElementById('reelLoading').classList.add('hidden');
+}
+
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+async function initReel() {
+    document.body.classList.add('reel-mode');
+    const movies = await fetchTrending();
+    trendingMovies = movies;
+    window.__moviesCount = movies.length;
+
+    if (!movies.length) {
+        // API down — hide reel screen, show landing oracle
+        exitReelMode();
+        showScreen('landing');
+        return;
+    }
+
+    if (!isWebGLAvailable()) {
+        renderFallbackGrid(movies);
+        return;
+    }
+
+    const host = document.getElementById('reelCanvasHost');
+    const metaEl = document.getElementById('reelMeta');
+    const titleEl = document.getElementById('reelMetaTitle');
+    const subEl = document.getElementById('reelMetaSub');
+
+    function updateMeta(movie) {
+        metaEl.classList.add('swap');
+        setTimeout(() => {
+            titleEl.textContent = movie.title || '';
+            const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '');
+            const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
+            subEl.innerHTML = year ? `${year}${rating ? ` · <span class="pink">${rating}/10</span>` : ''}` : '';
+            metaEl.classList.remove('swap');
+        }, 180);
+    }
+
+    try {
+        reelHandle = mountReel(host, movies, {
+            onFocus: (idx, movie) => updateMeta(movie),
+            onSelect: (movie) => selectTrendingMovie(movie),
+        });
+        // Initial meta matches reel.js intro target (idx 2)
+        updateMeta(movies[Math.floor(movies.length / 2)]);
+        requestAnimationFrame(() => {
+            document.getElementById('reelLoading').classList.add('hidden');
+        });
+    } catch (err) {
+        console.error('Reel mount failed:', err);
+        renderFallbackGrid(movies);
+    }
+}
 
 // =============================================
 //  QUESTIONS
@@ -1322,8 +1805,15 @@ function watchAgain() {
 function startOver() {
     document.getElementById('resultDetails').classList.remove('expanded');
     document.getElementById('result').classList.remove('details-open');
-    showScreen('landing');
+    // From oracle/result → back to reel home (the new "start over")
+    enterReelMode();
 }
+
+// Expose handlers used inline in HTML (module scripts don't auto-globalize)
+window.startOracle = startOracle;
+window.answer = answer;
+window.watchAgain = watchAgain;
+window.startOver = startOver;
 
 // =============================================
 //  POSTER CLICK → EXPAND DETAILS
@@ -1331,9 +1821,9 @@ function startOver() {
 document.getElementById('resultPoster').addEventListener('click', toggleDetails);
 
 // =============================================
-//  INIT — load token from config.js
+//  INIT — boot into reel mode
 // =============================================
-// Init — ready
+initReel();
 </script>
 
 </body>
