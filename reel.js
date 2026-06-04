@@ -27,8 +27,8 @@ const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 //
 // 20 posters distributed around a helix. Lower revs = neighbors closer to the focused poster
 // in viewport; higher revs = more 'spiral stair' feel. 1.5 revs = 27°/poster (sweet spot for portrait).
-const CYL_RADIUS = 2.4;             // doubled — gives side posters room to read as tilted parallelograms
-const HELIX_PITCH = 0.42;            // slightly bumped to match the larger cylinder
+const CYL_RADIUS = 2.8;             // bumped per Axel's arc-vs-poster-width formula: 20% slack, no neighbor clipping
+const HELIX_PITCH = 0.42;            // gentle staircase descent (matches larger cylinder)
 const REVS_PER_LOOP = 1.5;           // 20 posters * 1.5 revolutions = 27°/poster (visible tilt on neighbors)
 const POSTER_W = 1.1;                // poster width — still well under cylinder radius (2.4), no self-intersection
 const POSTER_H = POSTER_W * 1.5;     // 2:3 movie poster ratio
@@ -179,8 +179,8 @@ export function mountReel(container, posters, opts = {}) {
   // Camera further back so the cylinder reads as a 3D shape with side posters
   // visible as tilted parallelograms next to the focused front poster.
   // Distance tuned so focused poster occupies ~60% viewport height on mobile (390x844).
-  const cameraDistance = 5.8;
-  camera.position.set(0, 0.8, cameraDistance);
+  const cameraDistance = 7.0;
+  camera.position.set(0, 0.9, cameraDistance);
   camera.lookAt(0, 0.0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
