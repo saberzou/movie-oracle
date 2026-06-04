@@ -21,12 +21,12 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 
 // Helix tuning constants — designed for portrait viewports primarily.
-const HELIX_RADIUS = 1.1;           // distance from central axis (smaller = neighbors stay closer to centerline)
-const HELIX_PITCH = 1.5;            // vertical distance per poster (bigger = neighbors visibly above/below)
-const ANGLE_STEP = (Math.PI / 180) * 28;  // ~28° lateral fan
-const POSTER_W = 1.05;              // smaller posters so multiple fit on screen
+const HELIX_RADIUS = 1.15;          // moderate radius — spiral arc reads without sending posters off-frustum
+const HELIX_PITCH = 0.85;           // tight vertical pitch so 5+ posters stack visibly in portrait
+const ANGLE_STEP = (Math.PI / 180) * 22;  // narrower lateral fan so posters stay in mobile frustum
+const POSTER_W = 0.92;              // smaller — the curve is the hero
 const POSTER_H = POSTER_W * 1.5;    // 2:3 movie poster ratio
-const VISIBLE_FALLOFF = 4;          // beyond this many steps from focus, posters fade out
+const VISIBLE_FALLOFF = 6;          // see more neighbors so the spiral is unmistakable
 const SNAP_DURATION = 420;          // ms
 const DRAG_SENSITIVITY = 0.006;     // rad per pixel
 const WHEEL_SENSITIVITY = 0.0024;   // rad per wheel delta
@@ -65,8 +65,8 @@ const POSTER_FRAG = /* glsl */ `
     float desat = clamp(focusDelta * 0.6, 0.0, 0.6);
     vec3 col = desaturate(tex.rgb, desat);
 
-    // Dim based on distance (less aggressive so above/below stay visible)
-    float dim = 1.0 - clamp(focusDelta * 0.22, 0.0, 0.55);
+    // Dim based on distance (gentle — we want neighbors visible enough to read the spiral curve)
+    float dim = 1.0 - clamp(focusDelta * 0.16, 0.0, 0.5);
     col *= dim;
 
     // Animated warm rim (right edge, drifts subtly with time)
@@ -145,15 +145,17 @@ export function mountReel(container, posters, opts = {}) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    35,
+    42,
     container.clientWidth / container.clientHeight,
     0.1,
     100
   );
   // Camera looks at the helix from outside, pointing at origin
   // Helix axis is Y; camera sits on +Z
-  const cameraDistance = 7.0;
-  camera.position.set(0, 0, cameraDistance);
+  const cameraDistance = 7.5;
+  // Camera offset upward + look slightly downward so the helix reads as a 3D spiral,
+  // not a flat carousel. Focused poster sits ON the spiral arc, visibly mid-curve.
+  camera.position.set(0, 0.6, cameraDistance);
   camera.lookAt(0, 0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
@@ -241,7 +243,7 @@ export function mountReel(container, posters, opts = {}) {
       m.position.set(
         Math.sin(angle) * HELIX_RADIUS,
         y,
-        Math.cos(angle) * HELIX_RADIUS - HELIX_RADIUS // push back so center poster sits at z=0
+        Math.cos(angle) * HELIX_RADIUS // genuine helix — focused poster orbits the same axis as the rest
       );
       m.rotation.y = -angle;
 
