@@ -27,10 +27,10 @@ const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 //
 // 20 posters distributed around a helix. Lower revs = neighbors closer to the focused poster
 // in viewport; higher revs = more 'spiral stair' feel. 1.5 revs = 27°/poster (sweet spot for portrait).
-const CYL_RADIUS = 1.05;            // cylinder radius — adjacent posters partially overlap focused
-const HELIX_PITCH = 0.18;            // small vertical drift per poster — cylinder dominates, helix is subtle
-const REVS_PER_LOOP = 3.0;           // 3 revolutions across ~60 posters = ~18°/poster — continuous wrap
-const POSTER_W = 1.05;               // poster plane width
+const CYL_RADIUS = 1.6;             // cylinder radius >> poster width so posters sit on the surface cleanly
+const HELIX_PITCH = 0.35;            // gentle staircase descent
+const REVS_PER_LOOP = 1.0;           // 20 posters * 1 revolution = 18°/poster (Saber's original spec)
+const POSTER_W = 0.9;                // poster width < cylinder radius so neighbors don't intersect through each other
 const POSTER_H = POSTER_W * 1.5;     // 2:3 movie poster ratio
 const VISIBLE_FALLOFF = 5;           // posters this many steps away from focus get faded out
 const BACK_HIDE = 14;                // posters more than this many steps away hidden entirely (far back of cylinder)

@@ -1089,28 +1089,10 @@ function showTrendingResult(movie) {
 
 async function fetchTrending() {
     try {
-        // Pull both week + day trending, multiple pages, dedupe. Aim ~60 unique posters
-        // so the cylinder reads as a continuous dense wrap (60 * 3 revs = 18°/poster).
-        const reqs = [
-            tmdbFetch('/trending/movie/week', { language: 'en-US', page: 1 }),
-            tmdbFetch('/trending/movie/week', { language: 'en-US', page: 2 }),
-            tmdbFetch('/trending/movie/day', { language: 'en-US', page: 1 }),
-            tmdbFetch('/trending/movie/day', { language: 'en-US', page: 2 }),
-        ];
-        const responses = await Promise.all(reqs);
-        if (responses.some((r) => !r.ok)) throw new Error('TMDB trending failed');
-        const pages = await Promise.all(responses.map((r) => r.json()));
-        const seen = new Set();
-        const merged = [];
-        for (const data of pages) {
-            for (const m of data.results || []) {
-                if (!m.poster_path) continue;
-                if (seen.has(m.id)) continue;
-                seen.add(m.id);
-                merged.push(m);
-            }
-        }
-        return merged.slice(0, 60);
+        const res = await tmdbFetch('/trending/movie/week', { language: 'en-US' });
+        if (!res.ok) throw new Error('TMDB trending failed');
+        const data = await res.json();
+        return (data.results || []).filter((m) => m.poster_path).slice(0, 20);
     } catch (e) {
         console.error('Trending fetch failed:', e);
         return [];
