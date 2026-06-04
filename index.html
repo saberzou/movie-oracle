@@ -776,13 +776,24 @@ body::before {
     margin-bottom: 16px;
     position: relative;
     overflow: hidden;
+    transition: margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#result.details-open .result-top {
+    margin-bottom: 4px;
 }
 
 #result .result-poster {
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1), height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 2;
     flex-shrink: 0;
     margin-bottom: 0;
+}
+
+/* Shrink poster in details-open so description block doesn't leave a big black gap below it (Saber #15402) */
+#result.details-open .result-poster {
+    width: 180px;
+    height: 270px;
 }
 
 .result-details {
@@ -988,7 +999,6 @@ body::before {
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
         <div class="result-actions">
-            <button class="btn-primary" onclick="watchAgain()">Next Movie</button>
             <button class="btn-secondary" onclick="startOver()">Back to Home</button>
         </div>
     </div>
