@@ -554,15 +554,14 @@ body::before {
 }
 
 .btn-secondary {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1rem;
     text-transform: uppercase;
     letter-spacing: 1px;
     background: transparent;
-    color: var(--text-dim);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    padding: 14px 36px;
+    color: var(--text);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    padding: 18px 48px;
     border-radius: var(--radius-pill);
     cursor: pointer;
     transition: all 0.2s;
@@ -570,7 +569,7 @@ body::before {
 
 .btn-secondary:hover {
     color: var(--text);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* =============================================
@@ -771,35 +770,18 @@ body::before {
 
 .result-actions {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    align-items: stretch;
 }
 
 .btn-trailer {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 22px;
-    background: transparent;
-    color: var(--text);
-    border: 1.5px solid var(--text-muted);
-    border-radius: 100px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-}
-
-.btn-trailer:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: var(--text);
-}
-
-.btn-trailer:active {
-    transform: scale(0.97);
+    justify-content: center;
+    gap: 10px;
 }
 
 .btn-trailer[hidden] {
@@ -807,7 +789,7 @@ body::before {
 }
 
 .trailer-icon {
-    color: var(--pink);
+    color: #fff;
     font-size: 0.85em;
     line-height: 1;
 }
@@ -1119,10 +1101,10 @@ body::before {
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
         <div class="result-actions">
-            <button class="btn-trailer" id="trailerBtn" onclick="openTrailer()" hidden>
+            <button class="btn-primary btn-trailer" id="trailerBtn" onclick="openTrailer()" hidden>
                 <span class="trailer-icon">▶</span> Watch Trailer
             </button>
-            <button class="btn-primary" onclick="startOver()">Back to Home</button>
+            <button class="btn-secondary" onclick="startOver()">Back to Home</button>
         </div>
     </div>
 
