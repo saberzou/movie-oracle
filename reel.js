@@ -104,8 +104,9 @@ const POSTER_FRAG = /* glsl */ `
       col += rimColor;
 
       // Snap shimmer: a soft diagonal highlight band sweeps left→right across the
-      // poster when it locks into focus. snapPulse fades 1→0 over ~150ms, so we
-      // map that to band position 0→1 across the surface.
+      // poster when it locks into focus. snapPulse fades 1→0 over ~700ms with
+      // easeInOutCubic (driven from JS tick), so we map that to band position 0→1
+      // across the surface — reads as light catching glossy stock (Axel #15423).
       if (snapPulse > 0.001 && focusDelta < 0.6) {
         float sweepPos = (1.0 - snapPulse) * 1.4 - 0.2; // -0.2 .. 1.2
         // Diagonal: band perpendicular to a vector tilted slightly.
@@ -531,23 +532,34 @@ export function mountReel(container, posters, opts = {}) {
     if (!snapping && !dragging && focusIdx !== lastFocusIdx && Math.abs(rotation - focusIdx) < 0.05) {
       lastFocusIdx = focusIdx;
       if (focusIdx >= 0 && focusIdx < N) {
-        // Rim flash on the newly-focused poster (decays in shader-update loop below).
+        // Reflective shimmer on the newly-focused poster: snapPulseStart drives a
+        // time-based sweep over SHIMMER_DURATION (~700ms) with easeInOutCubic.
         if (meshes[focusIdx]) {
-          meshes[focusIdx].material.uniforms.snapPulse.value = 1.0;
+          meshes[focusIdx].mesh.userData.snapPulseStart = t;
         }
         onFocus(focusIdx, posters[focusIdx]);
         updateTextureLoading();
       }
     }
 
-    // Decay snapPulse on all posters toward 0 (smooth rim flash falloff).
+    // Drive snapPulse uniform from per-mesh start time — 700ms eased sweep so it
+    // reads as light sliding across glossy stock, not a flash (Axel #15423).
+    const SHIMMER_DURATION = 0.7;
     for (let i = 0; i < N; i++) {
+      const start = meshes[i].mesh.userData.snapPulseStart;
       const u = meshes[i].material.uniforms.snapPulse;
-      if (u.value > 0.001) {
-        u.value *= 0.92;
-      } else {
+      if (start === undefined) { u.value = 0; continue; }
+      const elapsed = t - start;
+      if (elapsed > SHIMMER_DURATION) {
         u.value = 0;
+        meshes[i].mesh.userData.snapPulseStart = undefined;
+        continue;
       }
+      // Progress 0→1. Map to snapPulse so that shader's sweepPos = (1 - snapPulse)
+      // goes from 0→1 over the duration. easeInOutCubic for elegant slide.
+      const p = elapsed / SHIMMER_DURATION;
+      const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      u.value = 1.0 - eased;
     }
 
     renderer.render(scene, camera);
