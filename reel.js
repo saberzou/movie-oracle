@@ -183,8 +183,8 @@ export function mountReel(container, posters, opts = {}) {
   // Aim camera below the focused poster center so the poster projects ABOVE viewport
   // midline — leaves clear bottom space for the title-meta text (Saber #15373).
   const cameraDistance = 6.6;
-  camera.position.set(0, -0.45, cameraDistance);
-  camera.lookAt(0, -0.45, 0);
+  camera.position.set(0, -0.27, cameraDistance);
+  camera.lookAt(0, -0.27, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
   // (cheaper than a postprocessing pass)
