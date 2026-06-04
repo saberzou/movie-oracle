@@ -21,9 +21,9 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 
 // Helix tuning constants — designed for portrait viewports primarily.
-const HELIX_RADIUS = 1.15;          // moderate radius — spiral arc reads without sending posters off-frustum
-const HELIX_PITCH = 0.85;           // tight vertical pitch so 5+ posters stack visibly in portrait
-const ANGLE_STEP = (Math.PI / 180) * 22;  // narrower lateral fan so posters stay in mobile frustum
+const HELIX_RADIUS = 0.78;          // tighter — spiral reads as a vertical COLUMN, neighbors overlap focused edges
+const HELIX_PITCH = 0.82;           // tight vertical pitch so ±3 posters stack visibly
+const ANGLE_STEP = (Math.PI / 180) * 20;  // narrower lateral fan now that radius is smaller
 const POSTER_W = 0.92;              // smaller — the curve is the hero
 const POSTER_H = POSTER_W * 1.5;    // 2:3 movie poster ratio
 const VISIBLE_FALLOFF = 6;          // see more neighbors so the spiral is unmistakable
@@ -70,11 +70,11 @@ const POSTER_FRAG = /* glsl */ `
     col *= dim;
 
     // Animated warm rim (right edge, drifts subtly with time)
-    // Only show on near-focus posters
-    float rimMask = smoothstep(0.78, 1.0, vUv.x);
+    // Only show on near-focus posters — strong enough to read as a projector beam.
+    float rimMask = smoothstep(0.72, 1.0, vUv.x);
     float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
-    float rimFalloff = 1.0 - smoothstep(0.0, 1.5, focusDelta);
-    vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 0.55;
+    float rimFalloff = 1.0 - smoothstep(0.0, 1.2, focusDelta);
+    vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1;
     col += rimColor;
 
     gl_FragColor = vec4(col, tex.a);
