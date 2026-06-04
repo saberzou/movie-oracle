@@ -172,15 +172,16 @@ export function mountReel(container, posters, opts = {}) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    55,
+    50,
     container.clientWidth / container.clientHeight,
     0.1,
     100
   );
-  // FOV 55 per Axel #15315 — wider lens exposes more cylinder circumference.
-  // Camera distance tuned so focused poster stays ~55% viewport height on mobile.
-  const cameraDistance = 5.5;
-  camera.position.set(0, 0.7, cameraDistance);
+  // Per Saber #15362: reel was too tall and focused poster sat low. Centering camera
+  // on the cylinder axis (y=0, lookAt y=0) and pulling further back so the whole reel
+  // sits smaller in the viewport with focused poster vertically centered.
+  const cameraDistance = 6.4;
+  camera.position.set(0, 0.0, cameraDistance);
   camera.lookAt(0, 0.0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
