@@ -28,8 +28,8 @@ const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 // 20 posters distributed around a helix. Lower revs = neighbors closer to the focused poster
 // in viewport; higher revs = more 'spiral stair' feel. 1.5 revs = 27°/poster (sweet spot for portrait).
 const CYL_RADIUS = 1.05;            // cylinder radius — adjacent posters partially overlap focused
-const HELIX_PITCH = 0.42;            // vertical drift per poster (gentle staircase descent)
-const REVS_PER_LOOP = 2.0;           // two revolutions across 20 posters = 36°/poster — wraps fully around with back-face posters visible
+const HELIX_PITCH = 0.18;            // small vertical drift per poster — cylinder dominates, helix is subtle
+const REVS_PER_LOOP = 3.0;           // 3 revolutions across ~60 posters = ~18°/poster — continuous wrap
 const POSTER_W = 1.05;               // poster plane width
 const POSTER_H = POSTER_W * 1.5;     // 2:3 movie poster ratio
 const VISIBLE_FALLOFF = 5;           // posters this many steps away from focus get faded out
@@ -171,17 +171,16 @@ export function mountReel(container, posters, opts = {}) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    36,
+    42,
     container.clientWidth / container.clientHeight,
     0.1,
     100
   );
-  // Camera sits in front of the cylinder, looking at its front surface.
-  // Cylinder axis is at the world origin (Y-up); camera on +Z, slightly above
-  // for a hint of looking down into the stairwell.
-  const cameraDistance = 4.0; // distance from cylinder CENTER
-  camera.position.set(0, 0.7, cameraDistance);
-  camera.lookAt(0, 0, 0);
+  // Pull camera back so the wrap reads as a 3D shape, not a single poster filling the viewport.
+  // Add a slight downward look-at so the cylinder shows its top edge — the "into the well" feel.
+  const cameraDistance = 6.0;
+  camera.position.set(0, 1.2, cameraDistance);
+  camera.lookAt(0, 0.2, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
   // (cheaper than a postprocessing pass)
@@ -438,10 +437,10 @@ export function mountReel(container, posters, opts = {}) {
   const ro = new ResizeObserver(onResize);
   ro.observe(container);
 
-  // ---- intro spin ----
-  // Land on a mid-index so users immediately see posters wrapping both directions.
-  rotation = 0;
-  startSnap(Math.min(3, N - 1));
+  // Start near the middle of the deck so the cylinder has posters above AND below from frame 0.
+  const introTarget = Math.floor(N / 2);
+  rotation = introTarget - 0.0001; // sub-pixel so startSnap registers movement and triggers a snap-in
+  startSnap(introTarget);
 
   // Preload ALL posters at w185 up front so the cylinder doesn't show blank slots.
   // 20 * ~30KB = ~600KB — still mobile-friendly, and the cylinder feel demands density.
