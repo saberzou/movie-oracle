@@ -28,8 +28,8 @@ const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 // 20 posters distributed around a helix. Lower revs = neighbors closer to the focused poster
 // in viewport; higher revs = more 'spiral stair' feel. 1.5 revs = 27°/poster (sweet spot for portrait).
 const CYL_RADIUS = 1.05;            // cylinder radius — adjacent posters partially overlap focused
-const HELIX_PITCH = 0.62;            // vertical drift per poster (gives staircase descent)
-const REVS_PER_LOOP = 1.0;           // exactly one full revolution across all 20 posters = 18°/poster
+const HELIX_PITCH = 0.42;            // vertical drift per poster (gentle staircase descent)
+const REVS_PER_LOOP = 2.0;           // two revolutions across 20 posters = 36°/poster — wraps fully around with back-face posters visible
 const POSTER_W = 1.05;               // poster plane width
 const POSTER_H = POSTER_W * 1.5;     // 2:3 movie poster ratio
 const VISIBLE_FALLOFF = 5;           // posters this many steps away from focus get faded out
@@ -66,38 +66,43 @@ const POSTER_FRAG = /* glsl */ `
   }
 
   void main() {
-    // Kill back-facing posters entirely (they'd show mirrored texture and clutter the back of the cylinder).
-    // Hard cut at facing < 0.05 (just past edge-on).
-    if (facing < 0.05) discard;
-
-    // Mipmap bias: higher delta = blurrier sample. Cap so it doesn't go absurd.
+    // Sample with mipmap bias for fake DOF.
     float bias = clamp(focusDelta * 1.6, 0.0, 4.5);
-    vec4 tex = texture2D(map, vUv, bias);
+
+    // Back-facing posters show a mirrored, dimmer version of the front
+    // (physically correct: a printed poster glued to a cylinder shows its back when it rotates away).
+    bool isBack = facing < 0.0;
+    vec2 uv = isBack ? vec2(1.0 - vUv.x, vUv.y) : vUv;
+    vec4 tex = texture2D(map, uv, bias);
 
     // Desaturate non-focused posters
     float desat = clamp(focusDelta * 0.5, 0.0, 0.55);
     vec3 col = desaturate(tex.rgb, desat);
 
-    // Dim based on distance (gentle)
+    // Dim based on distance from focus (gentle)
     float dim = 1.0 - clamp(focusDelta * 0.18, 0.0, 0.55);
     col *= dim;
 
-    // Edge-on darkening: as a poster rotates toward its sides on the cylinder,
-    // it picks up less light — fade it as facing -> 0.
-    float edgeShade = smoothstep(0.05, 0.55, facing);
+    // Edge-on darkening based on facing magnitude (|facing| = 1 at front/back, 0 at edge).
+    // Posters glancing edge-on get darker; fully back posters get a strong dim + slight cool tint.
+    float absFacing = abs(facing);
+    float edgeShade = smoothstep(0.05, 0.55, absFacing);
     col *= mix(0.35, 1.0, edgeShade);
 
-    // Animated warm rim (right edge, drifts subtly with time).
-    // Only show on near-focus posters — strong enough to read as a projector beam.
-    float rimMask = smoothstep(0.72, 1.0, vUv.x);
-    float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
-    float rimFalloff = 1.0 - smoothstep(0.0, 1.2, focusDelta);
-    vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1;
-    col += rimColor;
+    if (isBack) {
+      // Back of poster: strong dim + slight desaturation + faint paper tint, no rim.
+      col = desaturate(col, 0.35) * 0.55;
+      col *= vec3(0.95, 0.93, 0.88); // warm paper tint
+    } else {
+      // Front: animated warm rim on near-focus posters.
+      float rimMask = smoothstep(0.72, 1.0, vUv.x);
+      float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
+      float rimFalloff = 1.0 - smoothstep(0.0, 1.2, focusDelta);
+      vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1;
+      col += rimColor;
+    }
 
-    // Alpha: full on focused & near-focused front, fade with edge.
     float alpha = tex.a * edgeShade;
-
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -287,10 +292,11 @@ export function mountReel(container, posters, opts = {}) {
       // Manual render order: back posters first, front last, so overlaps composite correctly.
       m.renderOrder = facing * 10;
 
-      // Cull posters far around the cylinder (mostly hidden behind it),
-      // and hide any poster whose actual image hasn't loaded yet (don't show grey placeholder).
+      // Cull posters far above/below the visible window. With back-faces rendered,
+      // we keep posters around the full cylinder — the helix vertical drift handles culling.
       const hasArt = meshes[i].currentSize !== null;
-      m.visible = absDelta <= BACK_HIDE && hasArt;
+      const vertOk = Math.abs(y) < 4.5; // visible vertical window
+      m.visible = vertOk && hasArt && absDelta <= BACK_HIDE;
     }
   }
 
