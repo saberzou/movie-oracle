@@ -830,24 +830,31 @@ body::before {
 
 .details-why {
     font-size: 0.82rem;
-    color: var(--purple);
+    color: var(--text-muted);
     font-style: italic;
     line-height: 1.5;
+    opacity: 0.85;
 }
 
-/* Mobile: poster slides half off left edge, info appears right */
+/* Mobile: poster sits cleanly on left with proper margin, info beside it (Axel #15405) */
 @media (max-width: 480px) {
+    #result.details-open .result-top {
+        justify-content: flex-start;
+        padding: 0 16px;
+        gap: 14px;
+    }
+
     #result.details-open .result-poster {
-        transform: translateX(calc(-50% - 24px)) rotate(-3deg);
+        transform: rotate(-2deg);
     }
 
     .result-details.expanded {
-        width: 60vw;
+        width: calc(100vw - 180px - 48px);
     }
 
     .details-inner {
-        width: 60vw;
-        padding: 16px 12px;
+        width: 100%;
+        padding: 0;
     }
 
     .details-overview {
@@ -999,7 +1006,7 @@ body::before {
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
         <div class="result-actions">
-            <button class="btn-secondary" onclick="startOver()">Back to Home</button>
+            <button class="btn-primary" onclick="startOver()">Back to Home</button>
         </div>
     </div>
 
