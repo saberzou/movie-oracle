@@ -56,6 +56,7 @@ const POSTER_FRAG = /* glsl */ `
   varying vec2 vUv;
   uniform sampler2D map;
   uniform float focusDelta;   // 0 at center, grows with distance
+  uniform float snapPulse;    // 0..1, brief on snap landing
   uniform float time;
   uniform float dpr;
   uniform float facing;       // cos(angleFromCamera): 1 front, 0 edge, -1 back
@@ -99,7 +100,9 @@ const POSTER_FRAG = /* glsl */ `
       float rimMask = smoothstep(0.72, 1.0, vUv.x);
       float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
       float rimFalloff = 1.0 - smoothstep(0.0, 1.2, focusDelta);
-      vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1;
+      // Snap-landing flash: rim brightens briefly when this poster becomes focused.
+      float pulseBoost = 1.0 + snapPulse * 0.6;
+      vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1 * pulseBoost;
       col += rimColor;
     }
 
@@ -230,6 +233,7 @@ export function mountReel(container, posters, opts = {}) {
         map: { value: placeholderTex },
         focusDelta: { value: Math.abs(i) },
         time: { value: 0 },
+        snapPulse: { value: 0 },
         dpr: { value: renderer.getPixelRatio() },
         facing: { value: 1.0 }, // 1 front-facing, 0 back-facing (alpha kill)
       },
@@ -260,6 +264,13 @@ export function mountReel(container, posters, opts = {}) {
   let snapping = false;
   let lastFocusIdx = -1;
 
+  // Intro entrance: each mesh has its own [0..1] progress that drives a y offset and scale.
+  // Cascades from focused outward so the cylinder appears to assemble itself.
+  const introProgress = new Array(N).fill(0);
+  let introStart = -1;
+  const INTRO_DURATION = 1.1;
+  const INTRO_STAGGER = 0.04;
+
   function placeMeshes() {
     // True cylinder: each poster has a base angle theta_i = i * (2*PI*REVS_PER_LOOP / N),
     // and the whole cylinder rotates so the poster at round(rotation) faces the camera.
@@ -271,12 +282,18 @@ export function mountReel(container, posters, opts = {}) {
       const y = -delta * HELIX_PITCH;
 
       const m = meshes[i].mesh;
+      // Intro offset: poster starts below + scaled down, eases up into place.
+      const intro = introProgress[i];
+      const introInv = 1.0 - intro;
+      const yIntro = introInv * -2.2;
+      const scaleIntro = lerp(0.6, 1.0, intro);
+      m.scale.set(scaleIntro, scaleIntro, 1);
       // Tangent plane on the cylinder surface:
       // At angle=0, poster sits at (0, y, +CYL_RADIUS) facing camera.
       // At angle=π, poster sits at (0, y, -CYL_RADIUS) facing AWAY from camera.
       m.position.set(
         Math.sin(angle) * CYL_RADIUS,
-        y,
+        y + yIntro,
         Math.cos(angle) * CYL_RADIUS
       );
       // Poster face points outward from the cylinder axis.
@@ -442,6 +459,7 @@ export function mountReel(container, posters, opts = {}) {
   const introTarget = Math.floor(N / 2);
   rotation = introTarget - 0.0001; // sub-pixel so startSnap registers movement and triggers a snap-in
   startSnap(introTarget);
+  introStart = performance.now() / 1000; // start the entrance cascade NOW
 
   // Preload ALL posters at w185 up front so the cylinder doesn't show blank slots.
   // 20 * ~30KB = ~600KB — still mobile-friendly, and the cylinder feel demands density.
@@ -463,6 +481,22 @@ export function mountReel(container, posters, opts = {}) {
 
     placeMeshes();
 
+    // Drive intro cascade: cascade from focused poster outward.
+    if (introStart >= 0) {
+      let allDone = true;
+      for (let i = 0; i < N; i++) {
+        const distFromFocus = Math.abs(i - introTarget);
+        const localStart = introStart + distFromFocus * INTRO_STAGGER;
+        const tt = (t - localStart) / INTRO_DURATION;
+        const p = Math.max(0, Math.min(1, tt));
+        // ease-out-back-ish: ease out cubic + small overshoot
+        const eased = 1 - Math.pow(1 - p, 3);
+        introProgress[i] = eased;
+        if (p < 1) allDone = false;
+      }
+      if (allDone) introStart = -1;
+    }
+
     // Update time uniform for rim animation
     for (let i = 0; i < N; i++) {
       meshes[i].material.uniforms.time.value = t;
@@ -473,8 +507,22 @@ export function mountReel(container, posters, opts = {}) {
     if (!snapping && !dragging && focusIdx !== lastFocusIdx && Math.abs(rotation - focusIdx) < 0.05) {
       lastFocusIdx = focusIdx;
       if (focusIdx >= 0 && focusIdx < N) {
+        // Rim flash on the newly-focused poster (decays in shader-update loop below).
+        if (meshes[focusIdx]) {
+          meshes[focusIdx].material.uniforms.snapPulse.value = 1.0;
+        }
         onFocus(focusIdx, posters[focusIdx]);
         updateTextureLoading();
+      }
+    }
+
+    // Decay snapPulse on all posters toward 0 (smooth rim flash falloff).
+    for (let i = 0; i < N; i++) {
+      const u = meshes[i].material.uniforms.snapPulse;
+      if (u.value > 0.001) {
+        u.value *= 0.92;
+      } else {
+        u.value = 0;
       }
     }
 

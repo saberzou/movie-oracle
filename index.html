@@ -1195,6 +1195,15 @@ async function initReel() {
                 gsap.from('.reel-hint', { opacity: 0, y: -8, duration: 0.5, delay: 0.35, ease: 'power2.out' });
                 gsap.from('.reel-cta-bar', { opacity: 0, y: 24, duration: 0.7, delay: 0.45, ease: 'power3.out' });
                 gsap.from('#reelMeta', { opacity: 0, y: 16, duration: 0.6, delay: 0.55, ease: 'power2.out' });
+                // Ambient breathing on the CTA pill — slow, subtle, doesn't compete with other motion.
+                gsap.to('.reel-cta', {
+                    scale: 1.025,
+                    duration: 2.4,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'sine.inOut',
+                    delay: 1.2,
+                });
             }
         });
     } catch (err) {
