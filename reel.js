@@ -96,17 +96,40 @@ const POSTER_FRAG = /* glsl */ `
       col = desaturate(col, 0.35) * 0.55;
       col *= vec3(0.95, 0.93, 0.88); // warm paper tint
     } else {
-      // Front: animated warm rim on near-focus posters.
-      float rimMask = smoothstep(0.72, 1.0, vUv.x);
+      // Front: animated warm rim glow on near-focus posters (subtle, always-on).
+      float rimMask = smoothstep(0.78, 1.0, vUv.x);
       float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
       float rimFalloff = 1.0 - smoothstep(0.0, 1.2, focusDelta);
-      // Snap-landing flash: rim brightens briefly when this poster becomes focused.
-      float pulseBoost = 1.0 + snapPulse * 0.6;
-      vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 1.1 * pulseBoost;
+      vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 0.55;
       col += rimColor;
+
+      // Snap shimmer: a soft diagonal highlight band sweeps left→right across the
+      // poster when it locks into focus. snapPulse fades 1→0 over ~150ms, so we
+      // map that to band position 0→1 across the surface.
+      if (snapPulse > 0.001 && focusDelta < 0.6) {
+        float sweepPos = (1.0 - snapPulse) * 1.4 - 0.2; // -0.2 .. 1.2
+        // Diagonal: band perpendicular to a vector tilted slightly.
+        float diag = vUv.x * 0.85 + (1.0 - vUv.y) * 0.15;
+        float bandDist = abs(diag - sweepPos);
+        float band = exp(-bandDist * bandDist * 60.0); // narrow gaussian
+        float shimmerFade = 1.0 - smoothstep(0.0, 0.6, focusDelta);
+        vec3 shimmerColor = vec3(1.0, 0.96, 0.86); // warm white
+        col += shimmerColor * band * shimmerFade * 0.55;
+      }
     }
 
-    float alpha = tex.a * edgeShade;
+    // Rounded-corner mask (matches the detail-page poster border-radius).
+    // Compute in poster-aspect-aware space so corners stay circular, not stretched.
+    vec2 halfSize = vec2(0.5, 0.75); // POSTER_W/2, POSTER_H/2 in local units; ratio 1.5
+    vec2 p = (vUv - 0.5) * halfSize * 2.0; // -halfSize..halfSize
+    float radius = 0.06; // ~12px on 200px-wide poster
+    vec2 q = abs(p) - (halfSize - vec2(radius));
+    float cornerDist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+    // Anti-aliased mask: smoothstep over ~1.5 fragment widths.
+    float aa = fwidth(cornerDist) * 1.5;
+    float cornerMask = 1.0 - smoothstep(-aa, aa, cornerDist);
+
+    float alpha = tex.a * edgeShade * cornerMask;
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -239,6 +262,7 @@ export function mountReel(container, posters, opts = {}) {
       },
       vertexShader: POSTER_VERT,
       fragmentShader: POSTER_FRAG,
+      extensions: { derivatives: true },
     });
 
     const mesh = new THREE.Mesh(posterGeo, mat);
