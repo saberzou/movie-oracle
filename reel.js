@@ -177,12 +177,11 @@ export function mountReel(container, posters, opts = {}) {
     0.1,
     100
   );
-  // Per Saber #15362: reel was too tall and focused poster sat low. Centering camera
-  // on the cylinder axis (y=0, lookAt y=0) and pulling further back so the whole reel
-  // sits smaller in the viewport with focused poster vertically centered.
-  const cameraDistance = 6.4;
-  camera.position.set(0, 0.0, cameraDistance);
-  camera.lookAt(0, 0.0, 0);
+  // Aim camera below the focused poster center so the poster projects ABOVE viewport
+  // midline — leaves clear bottom space for the title-meta text (Saber #15373).
+  const cameraDistance = 6.6;
+  camera.position.set(0, -0.45, cameraDistance);
+  camera.lookAt(0, -0.45, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
   // (cheaper than a postprocessing pass)

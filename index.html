@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <style>
 /* =============================================
    RESET & BASE
@@ -249,13 +250,13 @@ body::before {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 130px;
+    bottom: 96px;
     text-align: center;
     z-index: 10;
     pointer-events: none;
-    padding: 12px 24px;
-    transition: opacity 0.35s ease;
+    padding: 8px 24px;
     background: transparent;
+    will-change: opacity, transform;
 }
 
 .reel-meta.swap {
@@ -1031,6 +1032,9 @@ function exitReelMode() {
 
 // CTA: "Pick for me" → start the oracle Q&A flow
 window.goToOracle = function() {
+    if (window.gsap) {
+        gsap.to('.reel-cta', { scale: 0.94, duration: 0.08, ease: 'power2.in', yoyo: true, repeat: 1 });
+    }
     exitReelMode();
     startOracle();
 };
@@ -1149,14 +1153,30 @@ async function initReel() {
     const subEl = document.getElementById('reelMetaSub');
 
     function updateMeta(movie) {
-        metaEl.classList.add('swap');
-        setTimeout(() => {
+        if (window.gsap) {
+            const tl = gsap.timeline();
+            tl.to([titleEl, subEl], {
+                opacity: 0,
+                y: -6,
+                duration: 0.18,
+                ease: 'power2.in',
+                onComplete: () => {
+                    titleEl.textContent = movie.title || '';
+                    const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '');
+                    const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
+                    subEl.innerHTML = year ? `${year}${rating ? ` · <span class="pink">${rating}/10</span>` : ''}` : '';
+                },
+            });
+            tl.fromTo([titleEl, subEl],
+                { opacity: 0, y: 12 },
+                { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out', stagger: 0.04 }
+            );
+        } else {
             titleEl.textContent = movie.title || '';
             const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '');
             const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
             subEl.innerHTML = year ? `${year}${rating ? ` · <span class="pink">${rating}/10</span>` : ''}` : '';
-            metaEl.classList.remove('swap');
-        }, 180);
+        }
     }
 
     try {
@@ -1168,6 +1188,14 @@ async function initReel() {
         updateMeta(movies[Math.floor(movies.length / 2)]);
         requestAnimationFrame(() => {
             document.getElementById('reelLoading').classList.add('hidden');
+            // GSAP intro: canvas + header + cta + meta fade and ease into place
+            if (window.gsap) {
+                gsap.from('#reelCanvasHost', { opacity: 0, scale: 0.92, duration: 0.85, ease: 'power3.out' });
+                gsap.from('.reel-header', { opacity: 0, y: -16, duration: 0.6, delay: 0.15, ease: 'power2.out' });
+                gsap.from('.reel-hint', { opacity: 0, y: -8, duration: 0.5, delay: 0.35, ease: 'power2.out' });
+                gsap.from('.reel-cta-bar', { opacity: 0, y: 24, duration: 0.7, delay: 0.45, ease: 'power3.out' });
+                gsap.from('#reelMeta', { opacity: 0, y: 16, duration: 0.6, delay: 0.55, ease: 'power2.out' });
+            }
         });
     } catch (err) {
         console.error('Reel mount failed:', err);
