@@ -772,6 +772,44 @@ body::before {
 .result-actions {
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn-trailer {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    background: transparent;
+    color: var(--text);
+    border: 1.5px solid var(--text-muted);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-trailer:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--text);
+}
+
+.btn-trailer:active {
+    transform: scale(0.97);
+}
+
+.btn-trailer[hidden] {
+    display: none;
+}
+
+.trailer-icon {
+    color: var(--pink);
+    font-size: 0.85em;
+    line-height: 1;
 }
 
 /* =============================================
@@ -1014,6 +1052,9 @@ body::before {
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
         <div class="result-actions">
+            <button class="btn-trailer" id="trailerBtn" onclick="openTrailer()" hidden>
+                <span class="trailer-icon">▶</span> Watch Trailer
+            </button>
             <button class="btn-primary" onclick="startOver()">Back to Home</button>
         </div>
     </div>
@@ -1097,6 +1138,12 @@ function showTrendingResult(movie) {
     document.getElementById('resultMeta').textContent = `${year}  ·  ${rating}/10`;
     document.getElementById('resultHook').textContent =
         '"Trending this week. The Oracle gives its blessing."';
+
+    // Reset + lazily fetch trailer for this movie.
+    const trailerBtn = document.getElementById('trailerBtn');
+    trailerBtn.hidden = true;
+    trailerBtn.dataset.youtubeKey = '';
+    if (movie.id) fetchTrailer(movie.id);
 
     const detailsEl = document.getElementById('resultDetails');
     detailsEl.classList.remove('expanded');
@@ -1871,11 +1918,43 @@ function startOver() {
     enterReelMode();
 }
 
+// =============================================
+//  TRAILER — fetch + open YouTube
+// =============================================
+async function fetchTrailer(movieId) {
+    const trailerBtn = document.getElementById('trailerBtn');
+    try {
+        const res = await tmdbFetch(`/movie/${movieId}/videos`, { language: 'en-US' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const videos = data.results || [];
+        // Prefer official trailer on YouTube, fallback to any trailer, then any teaser.
+        const pick =
+            videos.find(v => v.site === 'YouTube' && v.type === 'Trailer' && v.official) ||
+            videos.find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+            videos.find(v => v.site === 'YouTube' && v.type === 'Teaser');
+        if (pick && pick.key) {
+            trailerBtn.dataset.youtubeKey = pick.key;
+            trailerBtn.hidden = false;
+        }
+    } catch (e) {
+        // Silent failure — button just stays hidden.
+    }
+}
+
+function openTrailer() {
+    const trailerBtn = document.getElementById('trailerBtn');
+    const key = trailerBtn.dataset.youtubeKey;
+    if (!key) return;
+    window.open(`https://www.youtube.com/watch?v=${key}`, '_blank', 'noopener,noreferrer');
+}
+
 // Expose handlers used inline in HTML (module scripts don't auto-globalize)
 window.startOracle = startOracle;
 window.answer = answer;
 window.watchAgain = watchAgain;
 window.startOver = startOver;
+window.openTrailer = openTrailer;
 
 // =============================================
 //  POSTER CLICK → EXPAND DETAILS
