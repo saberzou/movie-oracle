@@ -171,16 +171,15 @@ export function mountReel(container, posters, opts = {}) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    42,
+    50,
     container.clientWidth / container.clientHeight,
     0.1,
     100
   );
-  // Camera further back so the cylinder reads as a 3D shape with side posters
-  // visible as tilted parallelograms next to the focused front poster.
-  // Distance tuned so focused poster occupies ~60% viewport height on mobile (390x844).
-  const cameraDistance = 7.0;
-  camera.position.set(0, 0.9, cameraDistance);
+  // Wider FOV + camera back so more of the cylinder circumference is visible
+  // (per Axel #15306: target 5-7 visible posters orbiting the focused one).
+  const cameraDistance = 6.2;
+  camera.position.set(0, 0.8, cameraDistance);
   camera.lookAt(0, 0.0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
