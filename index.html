@@ -675,9 +675,17 @@ body::before {
 /* =============================================
    RESULT SCREEN
    ============================================= */
+#result {
+    justify-content: flex-start;
+    padding-top: max(24px, env(safe-area-inset-top, 0));
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0));
+    gap: 14px;
+    min-height: 100dvh;
+}
+
 .result-poster {
-    width: 220px;
-    height: 330px;
+    width: min(72vw, 320px);
+    height: calc(min(72vw, 320px) * 1.5);
     border-radius: var(--radius);
     overflow: hidden;
     box-shadow:
@@ -741,22 +749,23 @@ body::before {
     font-size: 1.8rem;
     line-height: 1.15;
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    margin-top: 4px;
 }
 
 .result-meta {
     font-size: 0.85rem;
     color: var(--text-muted);
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     letter-spacing: 1px;
 }
 
 .result-hook {
-    font-size: 1.05rem;
+    font-size: 1rem;
     color: var(--text-dim);
-    line-height: 1.5;
+    line-height: 1.45;
     max-width: 340px;
-    margin-bottom: 36px;
+    margin-bottom: 18px;
     font-style: italic;
 }
 
@@ -773,7 +782,7 @@ body::before {
     align-items: center;
     justify-content: center;
     width: 100vw;
-    margin-bottom: 16px;
+    margin-bottom: 4px;
     position: relative;
     overflow: hidden;
     transition: margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -903,8 +912,8 @@ body::before {
     }
 
     .result-poster {
-        width: 180px;
-        height: 270px;
+        width: min(72vw, 320px);
+        height: calc(min(72vw, 320px) * 1.5);
     }
 
     .result-title {
@@ -923,10 +932,7 @@ body::before {
 }
 
 @media (min-height: 800px) {
-    .result-poster {
-        width: 260px;
-        height: 390px;
-    }
+    /* No extra scaling — mobile rule already caps at 320px which is plenty on tall phones. */
 }
     </style>
 </head>
