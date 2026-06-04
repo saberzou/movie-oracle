@@ -96,12 +96,8 @@ const POSTER_FRAG = /* glsl */ `
       col = desaturate(col, 0.35) * 0.55;
       col *= vec3(0.95, 0.93, 0.88); // warm paper tint
     } else {
-      // Front: animated warm rim glow on near-focus posters (subtle, always-on).
-      float rimMask = smoothstep(0.78, 1.0, vUv.x);
-      float rimAnim = 0.85 + 0.15 * sin(time * 0.6 + vUv.y * 3.0);
-      float rimFalloff = 1.0 - smoothstep(0.0, 1.2, focusDelta);
-      vec3 rimColor = vec3(1.0, 0.78, 0.5) * rimMask * rimAnim * rimFalloff * 0.55;
-      col += rimColor;
+      // No always-on rim glow — it read as a flash artifact stuck on the right edge (Saber #15448).
+      // The sweeping shimmer on snap below provides all the highlight personality we need.
 
       // Snap shimmer: a soft diagonal highlight band sweeps left→right across the
       // poster when it locks into focus. snapPulse fades 1→0 over ~700ms with
