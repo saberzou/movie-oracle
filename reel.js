@@ -27,10 +27,10 @@ const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 //
 // 20 posters distributed around a helix. Lower revs = neighbors closer to the focused poster
 // in viewport; higher revs = more 'spiral stair' feel. 1.5 revs = 27°/poster (sweet spot for portrait).
-const CYL_RADIUS = 1.6;             // cylinder radius >> poster width so posters sit on the surface cleanly
-const HELIX_PITCH = 0.35;            // gentle staircase descent
-const REVS_PER_LOOP = 1.0;           // 20 posters * 1 revolution = 18°/poster (Saber's original spec)
-const POSTER_W = 0.9;                // poster width < cylinder radius so neighbors don't intersect through each other
+const CYL_RADIUS = 2.4;             // doubled — gives side posters room to read as tilted parallelograms
+const HELIX_PITCH = 0.42;            // slightly bumped to match the larger cylinder
+const REVS_PER_LOOP = 1.5;           // 20 posters * 1.5 revolutions = 27°/poster (visible tilt on neighbors)
+const POSTER_W = 1.1;                // poster width — still well under cylinder radius (2.4), no self-intersection
 const POSTER_H = POSTER_W * 1.5;     // 2:3 movie poster ratio
 const VISIBLE_FALLOFF = 5;           // posters this many steps away from focus get faded out
 const BACK_HIDE = 14;                // posters more than this many steps away hidden entirely (far back of cylinder)
@@ -176,11 +176,12 @@ export function mountReel(container, posters, opts = {}) {
     0.1,
     100
   );
-  // Pull camera back so the wrap reads as a 3D shape, not a single poster filling the viewport.
-  // Add a slight downward look-at so the cylinder shows its top edge — the "into the well" feel.
-  const cameraDistance = 6.0;
-  camera.position.set(0, 1.2, cameraDistance);
-  camera.lookAt(0, 0.2, 0);
+  // Camera further back so the cylinder reads as a 3D shape with side posters
+  // visible as tilted parallelograms next to the focused front poster.
+  // Distance tuned so focused poster occupies ~60% viewport height on mobile (390x844).
+  const cameraDistance = 5.8;
+  camera.position.set(0, 0.8, cameraDistance);
+  camera.lookAt(0, 0.0, 0);
 
   // Subtle radial vignette via a fullscreen plane behind everything
   // (cheaper than a postprocessing pass)
