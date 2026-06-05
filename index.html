@@ -105,6 +105,18 @@ body::before {
     text-align: center;
 }
 
+/* Result screen scrolls naturally from the top — centering an oversized screen clips the poster off the top of the viewport (Saber #15503). */
+body.result-mode .app {
+    justify-content: flex-start;
+    padding-top: max(20px, env(safe-area-inset-top, 0));
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0));
+}
+
+body.result-mode {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* =============================================
    DECO IMAGES — edge-bleeding background elements
    ============================================= */
@@ -676,10 +688,10 @@ body::before {
    ============================================= */
 #result {
     justify-content: flex-start;
-    padding-top: max(24px, env(safe-area-inset-top, 0));
+    padding-top: 0;
     padding-bottom: max(16px, env(safe-area-inset-bottom, 0));
     gap: 14px;
-    min-height: 100dvh;
+    min-height: auto;
 }
 
 .result-poster {
@@ -782,6 +794,8 @@ body::before {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    padding: 14px 28px;
+    white-space: nowrap;
 }
 
 .btn-trailer[hidden] {
@@ -789,9 +803,11 @@ body::before {
 }
 
 .trailer-icon {
-    color: #fff;
-    font-size: 0.85em;
-    line-height: 1;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    display: inline-block;
+    fill: currentColor;
 }
 
 /* =============================================
@@ -1012,11 +1028,15 @@ body::before {
     .result-actions {
         flex-direction: column;
         width: 100%;
-        max-width: 280px;
+        max-width: 320px;
     }
 
     .btn-primary, .btn-secondary {
         width: 100%;
+    }
+
+    .btn-secondary {
+        padding: 14px 28px;
     }
 }
 
@@ -1102,7 +1122,7 @@ body::before {
         <p class="result-hook" id="resultHook"></p>
         <div class="result-actions">
             <button class="btn-primary btn-trailer" id="trailerBtn" onclick="openTrailer()" hidden>
-                <span class="trailer-icon">▶</span> Watch Trailer
+                <svg class="trailer-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg> Watch Trailer
             </button>
             <button class="btn-secondary" onclick="startOver()">Back to Home</button>
         </div>
@@ -1193,8 +1213,10 @@ function showTrendingResult(movie) {
     const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '—');
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
     document.getElementById('resultMeta').textContent = `${year}  ·  ${rating}/10`;
+    // Placeholder while the real tagline loads, then applyRealTagline replaces it.
     document.getElementById('resultHook').textContent =
-        '"Trending this week. The Oracle gives its blessing."';
+        '“Trending this week.”';
+    if (movie.id) applyRealTagline(movie);
 
     // Reset + lazily fetch trailer for this movie.
     const trailerBtn = document.getElementById('trailerBtn');
@@ -1816,6 +1838,12 @@ function showScreen(id) {
     // Show/hide deco images
     const decos = document.querySelectorAll('.deco');
     decos.forEach(d => d.style.display = (id === 'result') ? 'none' : '');
+
+    // Toggle result-mode on body so .app anchors to top and page scrolls naturally (Saber #15503).
+    document.body.classList.toggle('result-mode', id === 'result');
+    if (id === 'result') {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    }
 }
 
 // =============================================
@@ -1912,6 +1940,7 @@ function showResult() {
 
     const movie = lastResults[lastResultIndex];
     lastResultIndex++;
+    currentMovie = movie;
 
     // Poster
     const posterImg = document.getElementById('posterImg');
@@ -1940,7 +1969,9 @@ function showResult() {
 
     // Hook
     document.getElementById('resultHook').textContent =
-        '"' + getHook(answers) + '"';
+        '“' + getHook(answers) + '”';
+    // Replace with real tagline when available (oracle flow also benefits from a real one).
+    if (movie.id) applyRealTagline(movie);
 
     // Inline details
     const detailsEl = document.getElementById('resultDetails');
@@ -1951,7 +1982,6 @@ function showResult() {
             : 'No synopsis available yet.';
     document.getElementById('detailsWhy').textContent = getWhyText(movie, answers);
 
-    currentMovie = movie;
     showScreen('result');
 }
 
@@ -1996,6 +2026,41 @@ async function fetchTrailer(movieId) {
         }
     } catch (e) {
         // Silent failure — button just stays hidden.
+    }
+}
+
+// Fetch the movie's real tagline from TMDB. Falls back to first sentence of overview
+// if tagline is empty. Returns null on failure (caller keeps the existing text).
+async function fetchMovieTagline(movieId) {
+    try {
+        const res = await tmdbFetch(`/movie/${movieId}`, { language: 'en-US' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.tagline && data.tagline.trim().length) {
+            return data.tagline.trim();
+        }
+        if (data.overview && data.overview.trim().length) {
+            // First sentence (". " boundary), capped so it stays one tight line.
+            const first = data.overview.split(/(?<=[.!?])\s+/)[0].trim();
+            return first.length > 140 ? first.slice(0, 137).trimEnd() + '…' : first;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Set the hook text on the result screen, ignoring stale fetches when the user
+// has already moved on to a different movie.
+async function applyRealTagline(movie, fallback) {
+    const hookEl = document.getElementById('resultHook');
+    const expectedId = movie.id;
+    if (!expectedId) return;
+    const tagline = await fetchMovieTagline(expectedId);
+    if (!tagline) return;
+    // Only apply if we're still showing the same movie.
+    if (currentMovie && currentMovie.id === expectedId) {
+        hookEl.textContent = '“' + tagline + '”';
     }
 }
 
