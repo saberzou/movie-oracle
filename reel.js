@@ -206,16 +206,19 @@ export function mountReel(container, posters, opts = {}) {
   camera.position.set(0, -0.27, cameraDistance);
   camera.lookAt(0, -0.27, 0);
 
-  // Subtle radial vignette via a fullscreen plane behind everything
-  // (cheaper than a postprocessing pass)
+  // Subtle radial vignette via a fullscreen plane.
+  // Sits BEHIND the helix (renderOrder -999) so it darkens the empty background
+  // around the reel without tinting the posters themselves. Posters write depth
+  // and render on top, preserving their true colors (Saber #15537).
   const vignetteGeo = new THREE.PlaneGeometry(40, 40);
   const vignetteMat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
+    depthTest: false,
     uniforms: {},
     vertexShader: `
       varying vec2 vUv;
-      void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+      void main() { vUv = uv; gl_Position = vec4(position.xy, 0.99, 1.0); }
     `,
     fragmentShader: `
       varying vec2 vUv;
@@ -228,7 +231,7 @@ export function mountReel(container, posters, opts = {}) {
     `,
   });
   const vignette = new THREE.Mesh(vignetteGeo, vignetteMat);
-  vignette.renderOrder = 999;
+  vignette.renderOrder = -999;
   scene.add(vignette);
 
   // ---- helix group ----
