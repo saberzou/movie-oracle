@@ -803,8 +803,8 @@ body.result-mode {
 }
 
 .trailer-icon {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     display: inline-block;
     fill: currentColor;
@@ -1213,9 +1213,9 @@ function showTrendingResult(movie) {
     const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '—');
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '—';
     document.getElementById('resultMeta').textContent = `${year}  ·  ${rating}/10`;
-    // Placeholder while the real tagline loads, then applyRealTagline replaces it.
-    document.getElementById('resultHook').textContent =
-        '“Trending this week.”';
+    // Movie-specific placeholder while the real tagline loads — never show a generic
+    // "trending this week" line, even on slow networks (Axel #15512).
+    document.getElementById('resultHook').textContent = buildPlaceholderHook(movie);
     if (movie.id) applyRealTagline(movie);
 
     // Reset + lazily fetch trailer for this movie.
@@ -2008,6 +2008,20 @@ function startOver() {
 // =============================================
 //  TRAILER — fetch + open YouTube
 // =============================================
+// Movie-aware placeholder shown for the brief moment before the real TMDB
+// tagline arrives. Uses year + first genre from data we already have at
+// render time, so we never flash a generic "trending this week" line.
+function buildPlaceholderHook(movie) {
+    const year = movie.release_date ? movie.release_date.split('-')[0] : (movie.year || '');
+    const firstGenre = (movie.genre_ids || [])
+        .map(g => GENRE_NAMES[g])
+        .find(Boolean);
+    if (year && firstGenre) return `“${year}’s ${firstGenre.toLowerCase()}.”`;
+    if (firstGenre) return `“${firstGenre}, hand-picked.”`;
+    if (year) return `“${year}, hand-picked.”`;
+    return '“Hand-picked by the Oracle.”';
+}
+
 async function fetchTrailer(movieId) {
     const trailerBtn = document.getElementById('trailerBtn');
     try {
