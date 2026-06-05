@@ -1995,6 +1995,13 @@ function showResult() {
             : 'No synopsis available yet.';
     document.getElementById('detailsWhy').textContent = getWhyText(movie, answers);
 
+    // Trailer: reset state + fetch for this movie. Mirrors showTrendingResult so
+    // the trailer button works on the oracle quiz flow too (Axel #15526 regression).
+    const trailerBtn = document.getElementById('trailerBtn');
+    trailerBtn.dataset.state = 'loading';
+    trailerBtn.dataset.youtubeKey = '';
+    if (movie.id) fetchTrailer(movie.id);
+
     showScreen('result');
 }
 
