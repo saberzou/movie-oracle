@@ -301,12 +301,15 @@ export function mountReel(container, posters, opts = {}) {
   let snapping = false;
   let lastFocusIdx = -1;
 
-  // Intro entrance: each mesh has its own [0..1] progress that drives a y offset and scale.
-  // Cascades from focused outward so the cylinder appears to assemble itself.
+  // Intro entrance: subtle scale-only cascade. Each mesh progresses 0ₒ1 over
+  // INTRO_DURATION, scaling from 0.88 → 1.0. No big vertical drop — that read
+  // as "stop then move" because posters were staged 2.2 units below their final
+  // position before sliding up (Saber #15563). Now they appear in place and
+  // gently bloom to full size, synced with the GSAP canvas fade-in.
   const introProgress = new Array(N).fill(0);
   let introStart = -1;
-  const INTRO_DURATION = 1.1;
-  const INTRO_STAGGER = 0.04;
+  const INTRO_DURATION = 0.7;
+  const INTRO_STAGGER = 0.025;
 
   function placeMeshes() {
     // True cylinder: each poster has a base angle theta_i = i * (2*PI*REVS_PER_LOOP / N),
@@ -319,18 +322,16 @@ export function mountReel(container, posters, opts = {}) {
       const y = -delta * HELIX_PITCH;
 
       const m = meshes[i].mesh;
-      // Intro offset: poster starts below + scaled down, eases up into place.
+      // Intro: subtle scale bloom only, no vertical offset.
       const intro = introProgress[i];
-      const introInv = 1.0 - intro;
-      const yIntro = introInv * -2.2;
-      const scaleIntro = lerp(0.6, 1.0, intro);
+      const scaleIntro = lerp(0.88, 1.0, intro);
       m.scale.set(scaleIntro, scaleIntro, 1);
       // Tangent plane on the cylinder surface:
       // At angle=0, poster sits at (0, y, +CYL_RADIUS) facing camera.
       // At angle=π, poster sits at (0, y, -CYL_RADIUS) facing AWAY from camera.
       m.position.set(
         Math.sin(angle) * CYL_RADIUS,
-        y + yIntro,
+        y,
         Math.cos(angle) * CYL_RADIUS
       );
       // Poster face points outward from the cylinder axis.
