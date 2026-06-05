@@ -798,6 +798,19 @@ body.result-mode {
     white-space: nowrap;
 }
 
+/* Trailer button visibility states:
+   - data-state="loading": invisible but occupies layout slot (no late pop-in)
+   - data-state="ready":   normal visible button
+   - data-state="none":    fully removed from layout (movie has no trailer) */
+.btn-trailer[data-state="loading"] {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.btn-trailer[data-state="none"] {
+    display: none;
+}
+
 .btn-trailer[hidden] {
     display: none;
 }
@@ -1121,7 +1134,7 @@ body.result-mode {
         <div class="result-meta" id="resultMeta"></div>
         <p class="result-hook" id="resultHook"></p>
         <div class="result-actions">
-            <button class="btn-primary btn-trailer" id="trailerBtn" onclick="openTrailer()" hidden>
+            <button class="btn-primary btn-trailer" id="trailerBtn" onclick="openTrailer()" data-state="none">
                 <svg class="trailer-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg> Watch Trailer
             </button>
             <button class="btn-secondary" onclick="startOver()">Back to Home</button>
@@ -1218,9 +1231,9 @@ function showTrendingResult(movie) {
     document.getElementById('resultHook').textContent = buildPlaceholderHook(movie);
     if (movie.id) applyRealTagline(movie);
 
-    // Reset + lazily fetch trailer for this movie.
+    // Trailer: reserve the layout slot during fetch so the button doesn't pop in late (Saber #15517).
     const trailerBtn = document.getElementById('trailerBtn');
-    trailerBtn.hidden = true;
+    trailerBtn.dataset.state = 'loading';
     trailerBtn.dataset.youtubeKey = '';
     if (movie.id) fetchTrailer(movie.id);
 
@@ -2036,10 +2049,14 @@ async function fetchTrailer(movieId) {
             videos.find(v => v.site === 'YouTube' && v.type === 'Teaser');
         if (pick && pick.key) {
             trailerBtn.dataset.youtubeKey = pick.key;
-            trailerBtn.hidden = false;
+            trailerBtn.dataset.state = 'ready';
+        } else {
+            // No trailer available — collapse the reserved slot entirely.
+            trailerBtn.dataset.state = 'none';
         }
     } catch (e) {
-        // Silent failure — button just stays hidden.
+        // Network or API failure — collapse the reserved slot rather than leave it blank forever.
+        trailerBtn.dataset.state = 'none';
     }
 }
 
