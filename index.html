@@ -921,6 +921,7 @@ body.result-mode {
     transition:
         transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         margin-right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        margin-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
         height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
@@ -992,14 +993,21 @@ body.result-mode {
         padding: 0 16px 0 0;   /* no left padding — poster owns the left edge */
         gap: 12px;
         overflow: visible;
+        align-items: flex-start;   /* description anchored at top so it lines up with poster top */
     }
 
     #result.details-open .result-poster {
-        /* Push the 180px-wide poster mostly off the left edge: leave ~32px visible (1/5 sliver).
-           translate moves the pixels; matching negative margin-right collapses its layout box
-           so the details panel can fill the freed space (transform alone doesn't move layout). */
-        transform: translateX(-148px) rotate(-2deg);
-        margin-right: -148px;
+        /* Shrink the poster to roughly description-block height so the visible sliver
+           doesn't extend below the description into the title row — keeps the layout
+           tight after collapsing the vertical gap (Saber #15665). Aspect ratio preserved
+           at ~2:3 by halving from the desktop details size. translateX = -(width - sliver)
+           so ~36px peeks from the left edge regardless of the poster width.
+           margin-right collapses horizontal layout box; margin-bottom collapses vertical. */
+        width: 90px;
+        height: 135px;
+        transform: translateX(-54px) rotate(-2deg);
+        margin-right: -54px;
+        margin-bottom: -135px;
     }
 
     .result-details.expanded {
