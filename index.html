@@ -918,7 +918,10 @@ body.result-mode {
 }
 
 #result .result-poster {
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1), height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
     flex-shrink: 0;
     margin-bottom: 0;
@@ -935,7 +938,11 @@ body.result-mode {
     max-height: 0;
     overflow: hidden;
     opacity: 0;
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease 0.15s;
+    /* easeOutExpo for the width swell + max-height — fast settle, no "thunk" at end. Opacity rides slightly behind so text fades in once the panel has some room. */
+    transition:
+        width 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        max-height 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.35s ease 0.18s;
     flex-shrink: 0;
 }
 
@@ -947,9 +954,12 @@ body.result-mode {
 .details-inner {
     padding: 20px;
     text-align: left;
-    transform: translateX(30px);
+    transform: translateX(24px);
     opacity: 0;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s, opacity 0.4s ease 0.25s;
+    /* Text rides in from the right just after the panel opens — easeOutQuart matches the panel's deceleration so they settle together. */
+    transition:
+        transform 0.5s cubic-bezier(0.25, 1, 0.5, 1) 0.18s,
+        opacity 0.35s ease 0.22s;
 }
 
 .result-details.expanded .details-inner {
@@ -972,20 +982,26 @@ body.result-mode {
     opacity: 0.85;
 }
 
-/* Mobile: poster sits cleanly on left with proper margin, info beside it (Axel #15405) */
+/* Mobile details-open: poster slides ~4/5 off-canvas left (only a peek remains),
+   description gets the room it needs for readable line lengths (Saber #15653).
+   Tap the visible sliver to collapse the panel back to the full poster. */
 @media (max-width: 480px) {
     #result.details-open .result-top {
         justify-content: flex-start;
-        padding: 0 16px;
-        gap: 14px;
+        padding: 0 16px 0 0;   /* no left padding — poster owns the left edge */
+        gap: 12px;
+        overflow: visible;
     }
 
     #result.details-open .result-poster {
-        transform: rotate(-2deg);
+        /* Push the 180px-wide poster mostly off the left edge: leave ~36px visible (1/5).
+           translateX = -(180 - 36) - 16 (kill the .app's 24px padding compensation) = -160 — round to -148 so the peek lands at ~32px which reads as a clear sliver but doesn't crush. */
+        transform: translateX(-148px) rotate(-2deg);
     }
 
     .result-details.expanded {
-        width: calc(100vw - 180px - 48px);
+        /* viewport − visible-peek (~36px) − right padding (16) − gap (12) = ~viewport-64 */
+        width: calc(100vw - 64px);
     }
 
     .details-inner {
@@ -994,7 +1010,8 @@ body.result-mode {
     }
 
     .details-overview {
-        font-size: 0.82rem;
+        font-size: 0.88rem;
+        line-height: 1.55;
     }
 }
 
