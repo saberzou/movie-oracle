@@ -1214,8 +1214,19 @@ let inReelMode = true;
 function enterReelMode() {
     inReelMode = true;
     document.body.classList.add('reel-mode');
+    document.body.classList.remove('result-mode');
     document.getElementById('reel').classList.add('active');
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+    // Sync history so the browser back button leaves the page once we're at reel.
+    if (!window.__navFromPopstate) {
+        // If we're already at the reel history entry, replace; otherwise push.
+        if (history.state?.screen === 'reel') {
+            history.replaceState({ screen: 'reel', detailsOpen: false }, '', '#');
+        } else {
+            history.pushState({ screen: 'reel', detailsOpen: false }, '', '#');
+        }
+    }
 }
 
 function exitReelMode() {
@@ -1333,6 +1344,9 @@ function escapeHtml(s) {
 
 async function initReel() {
     document.body.classList.add('reel-mode');
+    // Seed history with the reel state so subsequent showScreen/toggleDetails calls
+    // push entries the back button can step through (Saber #15717).
+    history.replaceState({ screen: 'reel', detailsOpen: false }, '', '#');
     const movies = await fetchTrending();
     trendingMovies = movies;
     window.__moviesCount = movies.length;
@@ -1898,7 +1912,62 @@ function showScreen(id) {
     if (id === 'result') {
         window.scrollTo({ top: 0, behavior: 'auto' });
     }
+
+    // Push to browser history so the back button steps through screens (Saber #15717).
+    // Skip if popstate is triggering us (the back button itself shouldn't push another entry).
+    if (!window.__navFromPopstate && history.state?.screen !== id) {
+        history.pushState({ screen: id, detailsOpen: false }, '', '#' + id);
+    }
 }
+
+function toggleDetails() {
+    const el = document.getElementById('resultDetails');
+    const screen = document.getElementById('result');
+    const isOpening = !screen.classList.contains('details-open');
+    el.classList.toggle('expanded');
+    screen.classList.toggle('details-open');
+
+    // Push a history entry so browser back closes the details panel first,
+    // then a second back returns to the reel (Saber #15717).
+    if (!window.__navFromPopstate) {
+        if (isOpening) {
+            history.pushState({ screen: 'result', detailsOpen: true }, '', '#result-details');
+        } else {
+            // Going from open → closed via the in-page poster tap: replace the
+            // top entry so back from here returns directly to the reel.
+            history.replaceState({ screen: 'result', detailsOpen: false }, '', '#result');
+        }
+    }
+}
+
+// Browser back/forward: re-sync UI to whatever state we just popped into.
+window.addEventListener('popstate', (e) => {
+    window.__navFromPopstate = true;
+    try {
+        const state = e.state || { screen: 'reel', detailsOpen: false };
+        const targetScreen = state.screen || 'reel';
+        const currentScreen = document.querySelector('.screen.active')?.id;
+        const detailsOpen = document.getElementById('result')?.classList.contains('details-open');
+
+        if (targetScreen !== currentScreen) {
+            // Screen swap (e.g. result → reel)
+            if (targetScreen === 'reel') {
+                // Use the existing path so reel mode re-engages (renderer, scroll lock, etc.)
+                document.getElementById('resultDetails').classList.remove('expanded');
+                document.getElementById('result').classList.remove('details-open');
+                enterReelMode();
+            } else {
+                showScreen(targetScreen);
+            }
+        }
+        // Sync details-open state for the same screen
+        if (targetScreen === 'result' && state.detailsOpen !== detailsOpen) {
+            toggleDetails();
+        }
+    } finally {
+        window.__navFromPopstate = false;
+    }
+});
 
 // =============================================
 //  FLOW
@@ -2046,11 +2115,9 @@ function showResult() {
     showScreen('result');
 }
 
-function toggleDetails() {
-    const el = document.getElementById('resultDetails');
-    const screen = document.getElementById('result');
-    el.classList.toggle('expanded');
-    screen.classList.toggle('details-open');
+function toggleDetailsLegacyPlaceholder_unused() {
+    // Replaced by the version above that also manages history.state — left here so
+    // a stray reference would fail loudly instead of silently.
 }
 
 function watchAgain() {
