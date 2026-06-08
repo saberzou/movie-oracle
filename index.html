@@ -921,6 +921,7 @@ body.result-mode {
     transition:
         transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         margin-right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        margin-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
         height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
@@ -992,17 +993,20 @@ body.result-mode {
         padding: 0 16px 0 0;   /* no left padding — poster owns the left edge */
         gap: 12px;
         overflow: visible;
-        align-items: flex-start;   /* description anchors to poster TOP, not center, so they read as side-by-side */
+        align-items: flex-start;  /* description anchors to poster top */
     }
 
     #result.details-open .result-poster {
-        /* Keep the full poster size and just slide+tilt to the side — the same poster
-           the user just saw glides aside, magic-move style, instead of shrinking
-           dramatically. Only ~36px peeks from the left edge (Saber #15665 v5).
-           translateX moves pixels; matching margin-right collapses horizontal layout
-           box so the details panel fills the freed width. */
+        /* Full-size poster slides left + tilts (Saber's magic-move call). Negative margins
+           collapse the layout box in both axes so .result-top height = description height,
+           which eliminates the dead air to the right of the lower poster portion when overviews
+           are short. Poster still RENDERS at full 180×270 via the transform translate; only its
+           layout footprint shrinks. The visible sliver runs down the left edge from top of
+           result-top through the title block area — since title is centered text it doesn't
+           collide horizontally with the far-left sliver. Magazine spread (Axel/Saber #15693). */
         transform: translateX(-148px) rotate(-2deg);
         margin-right: -148px;
+        margin-bottom: -270px;
     }
 
     .result-details.expanded {
