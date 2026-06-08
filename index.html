@@ -920,6 +920,7 @@ body.result-mode {
 #result .result-poster {
     transition:
         transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        margin-right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
         height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
@@ -994,13 +995,15 @@ body.result-mode {
     }
 
     #result.details-open .result-poster {
-        /* Push the 180px-wide poster mostly off the left edge: leave ~36px visible (1/5).
-           translateX = -(180 - 36) - 16 (kill the .app's 24px padding compensation) = -160 — round to -148 so the peek lands at ~32px which reads as a clear sliver but doesn't crush. */
+        /* Push the 180px-wide poster mostly off the left edge: leave ~32px visible (1/5 sliver).
+           translate moves the pixels; matching negative margin-right collapses its layout box
+           so the details panel can fill the freed space (transform alone doesn't move layout). */
         transform: translateX(-148px) rotate(-2deg);
+        margin-right: -148px;
     }
 
     .result-details.expanded {
-        /* viewport − visible-peek (~36px) − right padding (16) − gap (12) = ~viewport-64 */
+        /* viewport − visible-peek (~36px) − right padding (16) − gap (12) = viewport-64 */
         width: calc(100vw - 64px);
     }
 
