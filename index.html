@@ -115,6 +115,13 @@ body.result-mode .app {
 }
 
 body.result-mode {
+    /* Anchor the body's flex cross-axis to the top so a tall .app doesn't get
+       half-pushed above the viewport by the default align-items: center. Without
+       this, padding-top alone can't save us — a 852px .app in a 664px viewport
+       gets shifted -94px, eating any breathing room. Keep justify-content
+       (horizontal) centered so .app stays in the middle of wider viewports.
+       (Axel #15626, follow-up to a056311/562f161). */
+    align-items: flex-start;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
