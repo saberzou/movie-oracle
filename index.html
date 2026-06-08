@@ -921,12 +921,10 @@ body.result-mode {
     transition:
         transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         margin-right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-        margin-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
         height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
     flex-shrink: 0;
-    margin-bottom: 0;
 }
 
 /* Shrink poster in details-open so description block doesn't leave a big black gap below it (Saber #15402) */
@@ -940,10 +938,11 @@ body.result-mode {
     max-height: 0;
     overflow: hidden;
     opacity: 0;
-    /* easeOutExpo for the width swell + max-height — fast settle, no "thunk" at end. Opacity rides slightly behind so text fades in once the panel has some room. */
+    /* easeOutExpo for the width swell + max-height + min-height — fast settle, no "thunk" at end. Opacity rides slightly behind so text fades in once the panel has some room. */
     transition:
         width 0.55s cubic-bezier(0.16, 1, 0.3, 1),
         max-height 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        min-height 0.55s cubic-bezier(0.16, 1, 0.3, 1),
         opacity 0.35s ease 0.18s;
     flex-shrink: 0;
 }
@@ -997,21 +996,24 @@ body.result-mode {
     }
 
     #result.details-open .result-poster {
-        /* Full-size poster slides left + tilts (Saber's magic-move call). Negative margins
-           collapse the layout box in both axes so .result-top height = description height,
-           which eliminates the dead air to the right of the lower poster portion when overviews
-           are short. Poster still RENDERS at full 180×270 via the transform translate; only its
-           layout footprint shrinks. The visible sliver runs down the left edge from top of
-           result-top through the title block area — since title is centered text it doesn't
-           collide horizontally with the far-left sliver. Magazine spread (Axel/Saber #15693). */
+        /* Full-size poster slides left + tilts (Saber's magic-move call). margin-right collapses
+           horizontal layout box; min-height on the description below ensures result-top is always
+           tall enough so the title clears the poster bottom — no margin-bottom hack, no
+           title-vs-sliver collision on long titles. */
         transform: translateX(-148px) rotate(-2deg);
         margin-right: -148px;
-        margin-bottom: -270px;
     }
 
     .result-details.expanded {
         /* viewport − visible-peek (~36px) − right padding (16) − gap (12) = viewport-64 */
         width: calc(100vw - 64px);
+        /* Match the poster height so the description column is always at least as tall as the
+           poster. Title block below result-top then always sits below poster bottom, never
+           colliding with the poster sliver regardless of overview length or title length
+           (Axel/Saber #15706). Short overviews leave a small dead zone at the bottom of the
+           description column — visually owned by the poster sliver on the left, less awkward
+           than a sliver-title collision. */
+        min-height: 270px;
     }
 
     .details-inner {
