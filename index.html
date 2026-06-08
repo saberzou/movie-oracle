@@ -921,7 +921,6 @@ body.result-mode {
     transition:
         transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         margin-right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-        margin-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
         height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
@@ -993,21 +992,17 @@ body.result-mode {
         padding: 0 16px 0 0;   /* no left padding — poster owns the left edge */
         gap: 12px;
         overflow: visible;
-        align-items: flex-start;   /* description anchored at top so it lines up with poster top */
+        align-items: flex-start;   /* description anchors to poster TOP, not center, so they read as side-by-side */
     }
 
     #result.details-open .result-poster {
-        /* Shrink the poster to roughly description-block height so the visible sliver
-           doesn't extend below the description into the title row — keeps the layout
-           tight after collapsing the vertical gap (Saber #15665). Aspect ratio preserved
-           at ~2:3 by halving from the desktop details size. translateX = -(width - sliver)
-           so ~36px peeks from the left edge regardless of the poster width.
-           margin-right collapses horizontal layout box; margin-bottom collapses vertical. */
-        width: 90px;
-        height: 135px;
-        transform: translateX(-54px) rotate(-2deg);
-        margin-right: -54px;
-        margin-bottom: -135px;
+        /* Keep the full poster size and just slide+tilt to the side — the same poster
+           the user just saw glides aside, magic-move style, instead of shrinking
+           dramatically. Only ~36px peeks from the left edge (Saber #15665 v5).
+           translateX moves pixels; matching margin-right collapses horizontal layout
+           box so the details panel fills the freed width. */
+        transform: translateX(-148px) rotate(-2deg);
+        margin-right: -148px;
     }
 
     .result-details.expanded {
