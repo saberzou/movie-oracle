@@ -126,10 +126,10 @@ const POSTER_FRAG = /* glsl */ `
     float cornerMask = 1.0 - smoothstep(-aa, aa, cornerDist);
 
     // Faint white inner border — reads like a paper print's white margin around
-    // the artwork. ~1.5px stroke at 5% opacity, only on the front of the poster
-    // so the back-of-cylinder side keeps its raw paper look (Saber #15553).
+    // the artwork. ~0.5px hairline at 5% opacity, only on the front of the poster
+    // so the back-of-cylinder side keeps its raw paper look (Saber #15553, thinned per Saber #15651).
     if (!isBack) {
-      float borderWidth = 0.012; // ~1.5px inside the rounded mask
+      float borderWidth = 0.004; // ~0.5px inside the rounded mask
       float borderInner = -borderWidth;
       float borderAA = fwidth(cornerDist);
       // ring = 1 inside the border band (between borderInner and 0), 0 elsewhere
