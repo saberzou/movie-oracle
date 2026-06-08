@@ -76,23 +76,22 @@ const POSTER_FRAG = /* glsl */ `
     vec2 uv = isBack ? vec2(1.0 - vUv.x, vUv.y) : vUv;
     vec4 tex = texture2D(map, uv, bias);
 
-    // Desaturate non-focused posters (gentler)
-    float desat = clamp(focusDelta * 0.35, 0.0, 0.40);
-    vec3 col = desaturate(tex.rgb, desat);
+    // No focus-based desat or dim on front-facing posters — Saber #15640 wanted
+    // posters rendered at their true brightness regardless of position on the cylinder.
+    // The "color burn" look came from stacking three multiplicative dim factors here;
+    // removed entirely for front-facing posters, kept only on the back side below.
+    vec3 col = tex.rgb;
 
-    // Dim based on distance from focus (very gentle) — floor raised per Axel #15315
-    // so side posters read as dim posters, not black silhouettes.
-    float dim = 1.0 - clamp(focusDelta * 0.08, 0.0, 0.30);
-    col *= dim;
-
-    // Edge-on darkening based on facing magnitude (|facing| = 1 at front/back, 0 at edge).
-    // Floor raised to 0.65 so glancing-edge posters stay clearly legible as posters.
+    // Edge-on alpha shaping is still needed so glancing posters fade out (otherwise
+    // they render as visible thin slivers at the cylinder horizon), but no longer
+    // multiplies into color — alpha-only, computed once and reused for the final mask.
     float absFacing = abs(facing);
     float edgeShade = smoothstep(0.05, 0.55, absFacing);
-    col *= mix(0.65, 1.0, edgeShade);
 
     if (isBack) {
       // Back of poster: strong dim + slight desaturation + faint paper tint, no rim.
+      // This is the only place darkening still applies — backs are physically the
+      // reverse of a printed poster glued to a cylinder, so they should read dim.
       col = desaturate(col, 0.35) * 0.55;
       col *= vec3(0.95, 0.93, 0.88); // warm paper tint
     } else {
@@ -141,6 +140,11 @@ const POSTER_FRAG = /* glsl */ `
 
     float alpha = tex.a * edgeShade * cornerMask;
     gl_FragColor = vec4(col, alpha);
+    // Custom ShaderMaterial in r152+ does sRGB->linear on texture sample (via map.colorSpace)
+    // but does NOT auto-encode linear->sRGB on output. Without this include, posters render
+    // ~32% darker than source, with green dimmed most (sRGB curve hits midtones hardest).
+    // Saber called this out: "posters are still darker than they should be" (#15725+).
+    #include <colorspace_fragment>
   }
 `;
 
