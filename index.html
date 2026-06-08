@@ -105,11 +105,13 @@ body::before {
     text-align: center;
 }
 
-/* Result screen scrolls naturally from the top — centering an oversized screen clips the poster off the top of the viewport (Saber #15503). */
+/* Result screen scrolls naturally from the top — centering an oversized screen clips the poster off the top of the viewport (Saber #15503).
+   Top padding adds real breathing room below the iOS status bar / browser chrome so the poster doesn't graze the edge (Saber #15626). */
 body.result-mode .app {
     justify-content: flex-start;
-    padding-top: max(20px, env(safe-area-inset-top, 0));
-    padding-bottom: max(24px, env(safe-area-inset-bottom, 0));
+    /* iOS Safari reports safe-area-inset-top=0 in non-PWA, so the max() needs a real baseline. 44px gives proper visual buffer below the status bar/URL chrome. */
+    padding-top: calc(44px + env(safe-area-inset-top, 0px));
+    padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
 }
 
 body.result-mode {
