@@ -2,21 +2,27 @@
 // Three.js r160 via ESM CDN. No build step.
 //
 // Public API:
-//   import { mountReel, unmountReel } from './reel.js'
-//   const handle = mountReel(containerEl, posters, { onFocus, onSelect })
-//   handle.dispose()
+//   import { mountReel, isWebGLAvailable } from './reel.js'
+//   const handle = mountReel(containerEl, posters, { onFocus, onSelect, reducedMotion })
+//   handle.pause() / handle.resume() / handle.dispose()
 //
 // posters: [{ id, title, year, poster_path, ... }]
 // onFocus(idx, poster) — fires when snap completes on a poster
-// onSelect(poster) — fires when user clicks/taps focused poster
+// onSelect(poster) — fires when user clicks/taps the focused poster
 //
 // Performance notes:
 //   - Textures lazy-loaded; w185 thumbs by default, swap to w500 for focused ±1.
 //   - Off-focus blur faked via mipmap bias (sample lower mip based on |focusDelta|).
-//   - No postprocessing pass. Animated rim done in fragment shader per poster.
-//   - Caps DPR at 2 for retina; falls back to 1 if FPS < 45 sustained.
+//   - No postprocessing pass.
+//   - Caps DPR at 2 for retina; drops to 1 if FPS < 45 sustained.
+//   - Idles when nothing is moving, and stops entirely via pause(). Callers MUST
+//     pause when the reel leaves the screen, or it renders forever behind it.
 
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+// Vendored rather than pulled from a CDN: subresource integrity can't be
+// applied to a bare ESM import, so a compromised CDN would have had script
+// execution here. Self-hosting also drops two extra origins off the critical
+// path and lets the page ship a strict Content-Security-Policy.
+import * as THREE from './vendor/three.module.min.js';
 
 const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 
@@ -57,8 +63,6 @@ const POSTER_FRAG = /* glsl */ `
   uniform sampler2D map;
   uniform float focusDelta;   // 0 at center, grows with distance
   uniform float snapPulse;    // 0..1, brief on snap landing
-  uniform float time;
-  uniform float dpr;
   uniform float facing;       // cos(angleFromCamera): 1 front, 0 edge, -1 back
 
   vec3 desaturate(vec3 c, float amt) {
@@ -193,7 +197,7 @@ function loadPosterTexture(loader, posterPath, size) {
 }
 
 export function mountReel(container, posters, opts = {}) {
-  const { onFocus = () => {}, onSelect = () => {} } = opts;
+  const { onFocus = () => {}, onSelect = () => {}, reducedMotion = false } = opts;
 
   // ---- renderer ----
   const renderer = new THREE.WebGLRenderer({
@@ -272,25 +276,24 @@ export function mountReel(container, posters, opts = {}) {
       uniforms: {
         map: { value: placeholderTex },
         focusDelta: { value: Math.abs(i) },
-        time: { value: 0 },
         snapPulse: { value: 0 },
-        dpr: { value: renderer.getPixelRatio() },
         facing: { value: 1.0 }, // 1 front-facing, 0 back-facing (alpha kill)
       },
       vertexShader: POSTER_VERT,
       fragmentShader: POSTER_FRAG,
-      extensions: { derivatives: true },
     });
 
     const mesh = new THREE.Mesh(posterGeo, mat);
     // Layout: each poster at angle = i * ANGLE_STEP, y = -i * HELIX_PITCH
-    // We'll set position in updateHelix() based on current rotation.
+    // We'll set position in placeMeshes() based on current rotation.
+    mesh.userData.posterIdx = i;
     helixGroup.add(mesh);
 
     meshes.push({
       mesh,
       material: mat,
       posterIdx: i,
+      facing: 1,
       currentSize: null, // 'w185' | 'w500'
       loadingSize: null,
     });
@@ -298,19 +301,36 @@ export function mountReel(container, posters, opts = {}) {
 
   // ---- rotation / position state ----
   // "rotation" here is a scalar offset in step-units. Integer = a poster snapped.
+  // It is unbounded: the deck wraps, so rotation drifts and gets normalised back
+  // into [0, N) whenever it settles.
   let rotation = 0; // current display rotation
   let targetRotation = 0; // snap target
   let snapStart = 0;
   let snapFrom = 0;
   let snapping = false;
   let lastFocusIdx = -1;
+  // Set whenever something changed that the last rendered frame doesn't show.
+  let needsRender = true;
+
+  // Shortest signed distance from a poster to the current rotation, in steps.
+  // Wrapping into [-N/2, N/2) is what turns the deck into an endless loop —
+  // it used to hard-clamp at both ends, so poster 20 was a dead stop.
+  function wrapDelta(d) {
+    const half = N / 2;
+    return ((d + half) % N + N) % N - half;
+  }
+
+  function normalizeIdx(i) {
+    return ((i % N) + N) % N;
+  }
 
   // Intro entrance: subtle scale-only cascade. Each mesh progresses 0ₒ1 over
   // INTRO_DURATION, scaling from 0.88 → 1.0. No big vertical drop — that read
   // as "stop then move" because posters were staged 2.2 units below their final
   // position before sliding up (Saber #15563). Now they appear in place and
   // gently bloom to full size, synced with the GSAP canvas fade-in.
-  const introProgress = new Array(N).fill(0);
+  // With reduced motion requested, posters simply start at full size.
+  const introProgress = new Array(N).fill(reducedMotion ? 1 : 0);
   let introStart = -1;
   const INTRO_DURATION = 0.7;
   const INTRO_STAGGER = 0.025;
@@ -321,7 +341,7 @@ export function mountReel(container, posters, opts = {}) {
     const ANG_PER = (2 * Math.PI * REVS_PER_LOOP) / N;
 
     for (let i = 0; i < N; i++) {
-      const delta = i - rotation; // fractional during snap, integer when settled
+      const delta = wrapDelta(i - rotation); // fractional during snap, integer when settled
       const angle = delta * ANG_PER; // 0 at focus; ± walks around the cylinder
       const y = -delta * HELIX_PITCH;
 
@@ -347,6 +367,7 @@ export function mountReel(container, posters, opts = {}) {
 
       meshes[i].material.uniforms.focusDelta.value = absDelta;
       meshes[i].material.uniforms.facing.value = facing;
+      meshes[i].facing = facing;
 
       // Manual render order: back posters first, front last, so overlaps composite correctly.
       m.renderOrder = facing * 10;
@@ -381,7 +402,9 @@ export function mountReel(container, posters, opts = {}) {
         slot.material.uniforms.map.value = tex;
         slot.currentSize = size;
         slot.loadingSize = null;
-        // Make this slot visible now that art is loaded (placeMeshes will keep it culled if too far)
+        // Art arrived while the reel may be sitting idle — force one more frame
+        // so the poster actually appears (placeMeshes still culls it if too far).
+        needsRender = true;
       })
       .catch(() => {
         slot.loadingSize = null;
@@ -391,7 +414,7 @@ export function mountReel(container, posters, opts = {}) {
   function updateTextureLoading() {
     const focusIdx = Math.round(rotation);
     for (let i = 0; i < N; i++) {
-      const delta = Math.abs(i - focusIdx);
+      const delta = Math.abs(wrapDelta(i - focusIdx));
       if (delta <= 1) {
         loadFor(i, 'w500');
       } else if (delta <= BACK_HIDE) {
@@ -400,15 +423,12 @@ export function mountReel(container, posters, opts = {}) {
     }
   }
 
-  function clampTarget(t) {
-    return Math.max(0, Math.min(N - 1, t));
-  }
-
   function startSnap(to) {
-    targetRotation = clampTarget(to);
+    targetRotation = to;
     snapFrom = rotation;
     snapStart = performance.now();
     snapping = true;
+    needsRender = true;
   }
 
   // ---- input ----
@@ -429,7 +449,8 @@ export function mountReel(container, posters, opts = {}) {
     const dy = e.clientY - dragLastY;
     dragLastY = e.clientY;
     dragMoved += Math.abs(dy);
-    rotation = clampTarget(rotation - dy * DRAG_SENSITIVITY * 4 / HELIX_PITCH);
+    rotation -= dy * DRAG_SENSITIVITY * 4 / HELIX_PITCH;
+    needsRender = true;
   }
   function onPointerUp(e) {
     if (!dragging) return;
@@ -448,19 +469,37 @@ export function mountReel(container, posters, opts = {}) {
   function onWheel(e) {
     e.preventDefault();
     snapping = false;
-    rotation = clampTarget(rotation + e.deltaY * WHEEL_SENSITIVITY);
+    rotation += e.deltaY * WHEEL_SENSITIVITY;
+    needsRender = true;
     clearTimeout(onWheel._snapTimer);
     onWheel._snapTimer = setTimeout(() => {
       startSnap(Math.round(rotation));
     }, 140);
   }
 
+  const raycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+
   function handleTap(e) {
-    // We treat any tap as "select the currently focused poster"
-    // since the focused one is the only visually-prominent target.
-    const focusIdx = Math.round(rotation);
-    if (focusIdx >= 0 && focusIdx < N) {
-      onSelect(posters[focusIdx]);
+    // Raycast rather than assuming intent: this used to treat a tap anywhere on
+    // the canvas — including empty background — as "open the focused poster".
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNdc, camera);
+
+    // Only front-facing, visible posters are tappable; the backs of the
+    // cylinder are drawn but shouldn't be targets.
+    const targets = meshes.filter((s) => s.mesh.visible && s.facing > 0).map((s) => s.mesh);
+    const hit = raycaster.intersectObjects(targets, false)[0];
+    if (!hit) return; // background tap — do nothing
+
+    const idx = hit.object.userData.posterIdx;
+    if (idx === normalizeIdx(Math.round(rotation))) {
+      onSelect(posters[idx]);
+    } else {
+      // Tapping a neighbour brings it into focus instead of firing selection.
+      startSnap(rotation + wrapDelta(idx - rotation));
     }
   }
 
@@ -472,6 +511,8 @@ export function mountReel(container, posters, opts = {}) {
 
   // Keyboard nav
   function onKey(e) {
+    // Ignore while the reel isn't the live screen, or while typing elsewhere.
+    if (!running) return;
     if (e.key === 'ArrowDown' || e.key === 'PageDown') {
       e.preventDefault();
       startSnap(Math.round(rotation) + 1);
@@ -480,8 +521,7 @@ export function mountReel(container, posters, opts = {}) {
       startSnap(Math.round(rotation) - 1);
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      const focusIdx = Math.round(rotation);
-      if (focusIdx >= 0 && focusIdx < N) onSelect(posters[focusIdx]);
+      onSelect(posters[normalizeIdx(Math.round(rotation))]);
     }
   }
   window.addEventListener('keydown', onKey);
@@ -490,9 +530,11 @@ export function mountReel(container, posters, opts = {}) {
   function onResize() {
     const w = container.clientWidth;
     const h = container.clientHeight;
+    if (!w || !h) return;
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    needsRender = true;
   }
   const ro = new ResizeObserver(onResize);
   ro.observe(container);
@@ -501,7 +543,6 @@ export function mountReel(container, posters, opts = {}) {
   const introTarget = Math.floor(N / 2);
   rotation = introTarget - 0.0001; // sub-pixel so startSnap registers movement and triggers a snap-in
   startSnap(introTarget);
-  introStart = performance.now() / 1000; // start the entrance cascade NOW
 
   // Preload ALL posters at w185 up front so the cylinder doesn't show blank slots.
   // 20 * ~30KB = ~600KB — still mobile-friendly, and the cylinder feel demands density.
@@ -509,19 +550,51 @@ export function mountReel(container, posters, opts = {}) {
 
   // ---- render loop ----
   let rafId = 0;
+  let running = false;
   const clock = new THREE.Clock();
 
+  // Adaptive resolution. Sampled only across frames we actually draw, since
+  // idle frames would flatter the average and never trigger the downgrade.
+  let frameSamples = 0;
+  let frameAccumMs = 0;
+  let lastFrameTs = 0;
+  let dprReduced = false;
+
+  function sampleFrameRate(now) {
+    if (lastFrameTs) {
+      frameAccumMs += now - lastFrameTs;
+      frameSamples++;
+    }
+    lastFrameTs = now;
+    if (frameSamples < 120) return;
+
+    const fps = 1000 / (frameAccumMs / frameSamples);
+    if (fps < 45 && !dprReduced && renderer.getPixelRatio() > 1) {
+      dprReduced = true;
+      renderer.setPixelRatio(1);
+      onResize();
+    }
+    frameSamples = 0;
+    frameAccumMs = 0;
+  }
+
   function tick() {
+    if (!running) return;
+    rafId = requestAnimationFrame(tick);
     const t = clock.getElapsedTime();
 
     if (snapping) {
       const elapsed = performance.now() - snapStart;
       const p = Math.min(elapsed / SNAP_DURATION, 1);
       rotation = lerp(snapFrom, targetRotation, easeOutCubic(p));
-      if (p >= 1) snapping = false;
+      if (p >= 1) {
+        snapping = false;
+        // Fold the unbounded rotation back into [0, N). placeMeshes works off
+        // wrapped deltas, so this is invisible — it just keeps the float small.
+        rotation = normalizeIdx(rotation);
+        targetRotation = rotation;
+      }
     }
-
-    placeMeshes();
 
     // Drive intro cascade: cascade from focused poster outward.
     if (introStart >= 0) {
@@ -539,29 +612,28 @@ export function mountReel(container, posters, opts = {}) {
       if (allDone) introStart = -1;
     }
 
-    // Update time uniform for rim animation
-    for (let i = 0; i < N; i++) {
-      meshes[i].material.uniforms.time.value = t;
-    }
-
     // Fire onFocus when snapped to a new poster
-    const focusIdx = Math.round(rotation);
-    if (!snapping && !dragging && focusIdx !== lastFocusIdx && Math.abs(rotation - focusIdx) < 0.05) {
+    const focusIdx = normalizeIdx(Math.round(rotation));
+    if (
+      !snapping && !dragging &&
+      focusIdx !== lastFocusIdx &&
+      Math.abs(wrapDelta(rotation - focusIdx)) < 0.05
+    ) {
       lastFocusIdx = focusIdx;
-      if (focusIdx >= 0 && focusIdx < N) {
-        // Reflective shimmer on the newly-focused poster: snapPulseStart drives a
-        // time-based sweep over SHIMMER_DURATION (~700ms) with easeInOutCubic.
-        if (meshes[focusIdx]) {
-          meshes[focusIdx].mesh.userData.snapPulseStart = t;
-        }
-        onFocus(focusIdx, posters[focusIdx]);
-        updateTextureLoading();
+      // Reflective shimmer on the newly-focused poster: snapPulseStart drives a
+      // time-based sweep over SHIMMER_DURATION (~700ms) with easeInOutCubic.
+      if (meshes[focusIdx] && !reducedMotion) {
+        meshes[focusIdx].mesh.userData.snapPulseStart = t;
       }
+      onFocus(focusIdx, posters[focusIdx]);
+      updateTextureLoading();
+      needsRender = true;
     }
 
     // Drive snapPulse uniform from per-mesh start time — 700ms eased sweep so it
     // reads as light sliding across glossy stock, not a flash (Axel #15423).
     const SHIMMER_DURATION = 0.7;
+    let shimmering = false;
     for (let i = 0; i < N; i++) {
       const start = meshes[i].mesh.userData.snapPulseStart;
       const u = meshes[i].material.uniforms.snapPulse;
@@ -577,19 +649,47 @@ export function mountReel(container, posters, opts = {}) {
       const p = elapsed / SHIMMER_DURATION;
       const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
       u.value = 1.0 - eased;
+      shimmering = true;
     }
 
+    // Nothing in motion and nothing invalidated — hold the last frame. A parked
+    // reel used to keep drawing 20 shader meshes at 60fps indefinitely.
+    if (!snapping && !dragging && introStart < 0 && !shimmering && !needsRender) {
+      lastFrameTs = 0; // don't count the idle gap against the frame-rate average
+      return;
+    }
+
+    placeMeshes();
     renderer.render(scene, camera);
-    rafId = requestAnimationFrame(tick);
+    needsRender = false;
+    sampleFrameRate(performance.now());
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    lastFrameTs = 0;
+    needsRender = true;
+    if (!reducedMotion && introStart < 0 && introProgress.some((p) => p < 1)) {
+      introStart = clock.getElapsedTime();
+    }
+    tick();
+  }
+
+  function stop() {
+    running = false;
+    cancelAnimationFrame(rafId);
   }
 
   // Initial load + render
   updateTextureLoading();
-  tick();
+  start();
 
   return {
+    pause: stop,
+    resume: start,
     dispose() {
-      cancelAnimationFrame(rafId);
+      stop();
       ro.disconnect();
       window.removeEventListener('keydown', onKey);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
@@ -612,10 +712,10 @@ export function mountReel(container, posters, opts = {}) {
       }
     },
     snapTo(i) {
-      startSnap(clampTarget(i));
+      startSnap(rotation + wrapDelta(i - rotation));
     },
     getFocusIdx() {
-      return Math.round(rotation);
+      return normalizeIdx(Math.round(rotation));
     },
   };
 }

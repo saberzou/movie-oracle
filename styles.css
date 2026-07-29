@@ -1,0 +1,1161 @@
+/* =============================================
+   RESET & BASE
+   ============================================= */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0a0a0f;
+    --bg-grid: rgba(255, 255, 255, 0.03);
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-hover: rgba(255, 255, 255, 0.08);
+    --text: #f0f0f0;
+    /* Both dim tones now clear WCAG AA (4.5:1) against --bg. --text-muted was
+       rgba(255,255,255,0.3) ≈ 2.2:1, which failed on .result-meta and
+       .details-why — the two places small print actually matters. */
+    --text-dim: rgba(255, 255, 255, 0.72);
+    --text-muted: rgba(255, 255, 255, 0.58);
+    /* --blue used to be #ec4899, byte-identical to --pink, so question 2's two
+       answers highlighted the same colour and the per-question accents silently
+       collapsed from six to five. */
+    --blue: #38bdf8;
+    --pink: #ec4899;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --green: #22c55e;
+    --purple: #a855f7;
+    --radius: 12px;
+    --radius-pill: 100px;
+}
+
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* =============================================
+   FOCUS
+   ============================================= */
+/* There was no focus style anywhere, so keyboard users navigated blind. */
+:focus-visible {
+    outline: 2px solid var(--pink);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Screen-reader-only live region for screen changes. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+body.reel-mode {
+    overflow: hidden;
+}
+
+body.reel-mode::before {
+    /* Kill the grid texture on reel view */
+    opacity: 0;
+}
+
+body.reel-mode .deco {
+    /* Kill the floating decos on reel view */
+    display: none !important;
+}
+
+body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =============================================
+   GRID TEXTURE BACKGROUND
+   ============================================= */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* =============================================
+   APP CONTAINER
+   ============================================= */
+.app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+}
+
+/* Result screen scrolls naturally from the top — centering an oversized screen clips the poster off the top of the viewport (Saber #15503).
+   Top padding adds real breathing room below the iOS status bar / browser chrome so the poster doesn't graze the edge (Saber #15626). */
+body.result-mode .app {
+    justify-content: flex-start;
+    /* iOS Safari reports safe-area-inset-top=0 in non-PWA, so the max() needs a real baseline. 44px gives proper visual buffer below the status bar/URL chrome. */
+    padding-top: calc(44px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+
+body.result-mode {
+    /* Anchor the body's flex cross-axis to the top so a tall .app doesn't get
+       half-pushed above the viewport by the default align-items: center. Without
+       this, padding-top alone can't save us — a 852px .app in a 664px viewport
+       gets shifted -94px, eating any breathing room. Keep justify-content
+       (horizontal) centered so .app stays in the middle of wider viewports.
+       (Axel #15626, follow-up to a056311/562f161). */
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* =============================================
+   DECO IMAGES — edge-bleeding background elements
+   ============================================= */
+.deco {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.2;
+    mix-blend-mode: screen;
+}
+
+.deco-wtf {
+    width: 220px;
+    top: 5%;
+    left: -70px;
+    animation: floatA 7s ease-in-out infinite;
+}
+
+.deco-alien {
+    width: 200px;
+    top: 8%;
+    right: -65px;
+    animation: floatB 8s ease-in-out infinite;
+}
+
+.deco-cursor {
+    width: 160px;
+    bottom: 10%;
+    left: -50px;
+    animation: floatC 6.5s ease-in-out infinite;
+}
+
+.deco-tv {
+    width: 240px;
+    bottom: 5%;
+    right: -80px;
+    animation: floatA 9s ease-in-out infinite;
+}
+
+.deco img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+@keyframes floatA {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+}
+
+@keyframes floatB {
+    0%, 100% { transform: translateY(0) rotate(2deg); }
+    50% { transform: translateY(-10px) rotate(-3deg); }
+}
+
+@keyframes floatC {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-14px) rotate(3deg); }
+}
+
+@media (max-width: 480px) {
+    .deco-wtf { width: 140px; left: -45px; }
+    .deco-alien { width: 130px; right: -42px; }
+    .deco-cursor { width: 110px; left: -35px; }
+    .deco-tv { width: 160px; right: -52px; }
+}
+
+@media (min-width: 768px) {
+    .deco-wtf { width: 280px; left: -90px; }
+    .deco-alien { width: 260px; right: -85px; }
+    .deco-cursor { width: 200px; left: -65px; }
+    .deco-tv { width: 300px; right: -100px; }
+}
+
+/* =============================================
+   REEL SCREEN — 3D helix homepage
+   ============================================= */
+.reel-screen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #050507;
+    z-index: 5;
+    display: none;
+}
+
+.reel-screen.active {
+    display: block;
+}
+
+.reel-canvas-host {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.reel-canvas-host canvas {
+    display: block;
+}
+
+/* Soft radial background glow behind the reel (cheap, CSS-only) */
+.reel-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(40, 30, 50, 0.4) 0%, rgba(0,0,0,0) 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.reel-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 24px 0;
+    z-index: 10;
+    pointer-events: none;
+    text-align: center;
+}
+
+.reel-brand {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.85);
+}
+
+.reel-brand-sub {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+/* Pinned focused-poster meta below canvas center */
+.reel-meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 96px;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    padding: 8px 24px;
+    background: transparent;
+    will-change: opacity, transform;
+}
+
+.reel-meta.swap {
+    opacity: 0;
+}
+
+.reel-meta-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.7);
+    margin-bottom: 6px;
+}
+
+.reel-meta-sub {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.reel-meta-sub .pink {
+    color: var(--pink);
+}
+
+/* Sticky frosted-glass CTA */
+.reel-cta-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    z-index: 11;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.reel-cta {
+    pointer-events: auto;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--pink);
+    background: rgba(20, 20, 28, 0.55);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-pill);
+    padding: 16px 36px;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reel-cta:hover {
+    transform: scale(1.03);
+    background: rgba(30, 30, 40, 0.7);
+}
+
+.reel-cta:active {
+    transform: scale(0.97);
+}
+
+.reel-cta .arrow {
+    transition: transform 0.2s ease;
+}
+
+.reel-cta:hover .arrow {
+    transform: translateX(4px);
+}
+
+.reel-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 64px;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: hintFade 6s ease forwards 1.5s;
+}
+
+@keyframes hintFade {
+    0% { opacity: 0; transform: translateY(-4px); }
+    20%, 70% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
+}
+
+/* Reel loading state */
+.reel-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 18px;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Archivo Black', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 0.85rem;
+    z-index: 8;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.reel-loading.hidden {
+    opacity: 0;
+}
+
+/* Fallback grid (no WebGL / low perf) */
+.reel-fallback {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    padding: 80px 16px 120px;
+    display: none;
+    z-index: 6;
+}
+
+.reel-fallback.active {
+    display: block;
+}
+
+.reel-fallback-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+@media (min-width: 600px) {
+    .reel-fallback-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* A real <button> — these were click-only <div>s, unreachable by keyboard, on
+   the very path most likely to be used with assistive tech. */
+.reel-fallback-card {
+    aspect-ratio: 2/3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #1a1a22;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+}
+
+.reel-fallback-card:hover {
+    transform: translateY(-4px);
+}
+
+.reel-fallback-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.reel-fallback-card-title {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: block;
+    padding: 8px 10px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+/* Mobile tuning */
+@media (max-width: 480px) {
+    .reel-meta {
+        bottom: 140px;
+    }
+    .reel-meta-title {
+        font-size: 1.25rem;
+    }
+    .reel-cta {
+        font-size: 0.85rem;
+        padding: 14px 28px;
+    }
+}
+
+/* =============================================
+   SCREENS — transition between states
+   ============================================= */
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.screen.active {
+    display: flex;
+    animation: fadeUp 0.4s ease both;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =============================================
+   LANDING SCREEN
+   ============================================= */
+.oracle-symbol {
+    width: 400px;
+    height: 400px;
+    margin-bottom: 8px;
+    overflow: visible;
+    border: none;
+    outline: none;
+    background: none;
+}
+
+.oracle-symbol img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: none;
+    outline: none;
+    mix-blend-mode: screen;
+}
+
+@media (max-width: 480px) {
+    .oracle-symbol {
+        width: 300px;
+        height: 300px;
+    }
+}
+
+.landing-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 3rem;
+    line-height: 1;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.landing-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-bottom: 48px;
+    font-weight: 400;
+}
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+.btn-primary {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    /* Explicitly --pink: this read var(--blue) only because the two tokens held
+       the same value. The CTA has always been pink and stays pink. */
+    background: var(--pink);
+    color: #fff;
+    border: none;
+    padding: 18px 48px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+}
+
+.btn-primary:hover {
+    transform: scale(1.03);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+    color: var(--text);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    padding: 18px 48px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* =============================================
+   QUESTION SCREEN
+   ============================================= */
+.question-progress {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.question-text {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 2.4rem;
+    line-height: 1.1;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+}
+
+.answer-group {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.answer-btn {
+    flex: 1;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    padding: 24px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.answer-btn:hover {
+    background: var(--surface-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.answer-btn:active {
+    transform: translateY(0);
+}
+
+/* Color accents per question */
+.q1 .answer-btn:first-child:hover { border-color: var(--orange); color: var(--orange); }
+.q1 .answer-btn:last-child:hover { border-color: var(--green); color: var(--green); }
+.q2 .answer-btn:first-child:hover { border-color: var(--blue); color: var(--blue); }
+.q2 .answer-btn:last-child:hover { border-color: var(--pink); color: var(--pink); }
+.q3 .answer-btn:first-child:hover { border-color: var(--yellow); color: var(--yellow); }
+.q3 .answer-btn:last-child:hover { border-color: var(--purple); color: var(--purple); }
+
+/* =============================================
+   LOADING SCREEN
+   ============================================= */
+.loading-text {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+.loading-dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--purple);
+    animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotBounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* =============================================
+   RESULT SCREEN
+   ============================================= */
+#result {
+    justify-content: flex-start;
+    padding-top: 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0));
+    gap: 14px;
+    min-height: auto;
+}
+
+/* A <button> rather than a <div>: it toggles the details panel, so it needs to
+   be reachable and announce its expanded state. */
+.result-poster {
+    width: min(72vw, 320px);
+    height: calc(min(72vw, 320px) * 1.5);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow:
+        0 8px 40px rgba(0, 0, 0, 0.5),
+        0 0 80px rgba(168, 85, 247, 0.1);
+    background: var(--surface);
+    position: relative;
+    cursor: pointer;
+    display: block;
+    padding: 0;
+    border: none;
+    font: inherit;
+    color: inherit;
+}
+
+.result-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.result-poster img.loaded {
+    opacity: 1;
+}
+
+/* Shimmer loading effect */
+.result-poster::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.15) 35%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.15) 65%,
+        transparent 80%
+    );
+    background-size: 300% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.result-poster.poster-loaded::after {
+    animation: hintShimmer 6s ease-in-out 2s 1;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes hintShimmer {
+    0%, 80% { background-position: 200% 0; opacity: 0; }
+    85% { opacity: 1; }
+    95% { background-position: -200% 0; opacity: 0; }
+    100% { background-position: -200% 0; opacity: 0; }
+}
+
+.result-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 1.8rem;
+    line-height: 1.15;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    margin-top: 4px;
+}
+
+.result-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.result-hook {
+    font-size: 1rem;
+    color: var(--text-dim);
+    line-height: 1.45;
+    max-width: 340px;
+    margin-bottom: 18px;
+    font-style: italic;
+}
+
+.result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    align-items: stretch;
+}
+
+.btn-trailer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 28px;
+    white-space: nowrap;
+}
+
+/* Trailer button visibility states:
+   - data-state="loading": invisible but occupies layout slot (no late pop-in)
+   - data-state="ready":   normal visible button
+   - data-state="none":    fully removed from layout (movie has no trailer) */
+.btn-trailer[data-state="loading"] {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.btn-trailer[data-state="none"] {
+    display: none;
+}
+
+.btn-trailer[hidden] {
+    display: none;
+}
+
+.trailer-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: inline-block;
+    fill: currentColor;
+}
+
+/* =============================================
+   TRAILER MODAL (v2 lightbox — Saber #15471)
+   ============================================= */
+.trailer-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.trailer-modal[hidden] {
+    display: none;
+}
+
+.trailer-frame-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+    transform: scale(0.92);
+}
+
+.trailer-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+.trailer-close {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top, 0));
+    right: max(16px, env(safe-area-inset-right, 0));
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    font-family: inherit;
+}
+
+.trailer-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.trailer-close:active {
+    transform: scale(0.92);
+}
+
+/* =============================================
+   RESULT SCREEN — magic move layout
+   ============================================= */
+.result-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    margin-bottom: 4px;
+    position: relative;
+    overflow: hidden;
+    transition: margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#result.details-open .result-top {
+    margin-bottom: 4px;
+}
+
+#result .result-poster {
+    transition:
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        margin-right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+/* Shrink poster in details-open so description block doesn't leave a big black gap below it (Saber #15402) */
+#result.details-open .result-poster {
+    width: 180px;
+    height: 270px;
+}
+
+.result-details {
+    width: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    /* easeOutExpo for the width swell + max-height + min-height — fast settle, no "thunk" at end. Opacity rides slightly behind so text fades in once the panel has some room. */
+    transition:
+        width 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        max-height 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        min-height 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.35s ease 0.18s;
+    flex-shrink: 0;
+}
+
+.result-details.expanded {
+    opacity: 1;
+    max-height: 600px;
+}
+
+.details-inner {
+    padding: 20px;
+    text-align: left;
+    transform: translateX(24px);
+    opacity: 0;
+    /* Text rides in from the right just after the panel opens — easeOutQuart matches the panel's deceleration so they settle together. */
+    transition:
+        transform 0.5s cubic-bezier(0.25, 1, 0.5, 1) 0.18s,
+        opacity 0.35s ease 0.22s;
+}
+
+.result-details.expanded .details-inner {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.details-overview {
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.details-why {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.5;
+    opacity: 0.85;
+}
+
+/* Mobile details-open: poster slides ~4/5 off-canvas left (only a peek remains),
+   description gets the room it needs for readable line lengths (Saber #15653).
+   Tap the visible sliver to collapse the panel back to the full poster. */
+@media (max-width: 480px) {
+    #result.details-open .result-top {
+        justify-content: flex-start;
+        padding: 0 16px 0 0;   /* no left padding — poster owns the left edge */
+        gap: 12px;
+        overflow: visible;
+        align-items: flex-start;  /* description anchors to poster top */
+    }
+
+    #result.details-open .result-poster {
+        /* Full-size poster slides left + tilts (Saber's magic-move call). margin-right collapses
+           horizontal layout box; min-height on the description below ensures result-top is always
+           tall enough so the title clears the poster bottom — no margin-bottom hack, no
+           title-vs-sliver collision on long titles. */
+        transform: translateX(-148px) rotate(-2deg);
+        margin-right: -148px;
+    }
+
+    .result-details.expanded {
+        /* viewport − visible-peek (~36px) − right padding (16) − gap (12) = viewport-64 */
+        width: calc(100vw - 64px);
+        /* Match the poster height so the description column is always at least as tall as the
+           poster. Title block below result-top then always sits below poster bottom, never
+           colliding with the poster sliver regardless of overview length or title length
+           (Axel/Saber #15706). Short overviews leave a small dead zone at the bottom of the
+           description column — visually owned by the poster sliver on the left, less awkward
+           than a sliver-title collision. */
+        min-height: 270px;
+    }
+
+    .details-inner {
+        width: 100%;
+        padding: 0;
+    }
+
+    .details-overview {
+        font-size: 0.88rem;
+        line-height: 1.55;
+    }
+}
+
+/* Desktop: poster shifts left, info beside it */
+@media (min-width: 481px) {
+    #result.details-open .result-poster {
+        transform: translateX(-24px) rotate(-2deg);
+    }
+
+    .result-details.expanded {
+        width: 340px;
+    }
+
+    .details-inner {
+        width: 340px;
+    }
+}
+
+/* =============================================
+   ERROR STATE
+   ============================================= */
+.error-text {
+    color: var(--pink);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 480px) {
+    .landing-title {
+        font-size: 2.4rem;
+    }
+
+    .question-text {
+        font-size: 1.8rem;
+    }
+
+    .answer-group {
+        max-width: 100%;
+    }
+
+    .result-poster {
+        width: min(72vw, 320px);
+        height: calc(min(72vw, 320px) * 1.5);
+    }
+
+    .result-title {
+        font-size: 1.4rem;
+    }
+
+    .result-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
+
+    .btn-secondary {
+        padding: 14px 28px;
+    }
+}
+
+@media (min-height: 800px) {
+    /* No extra scaling — mobile rule already caps at 320px which is plenty on tall phones. */
+}
+
+/* =============================================
+   REDUCED MOTION
+   ============================================= */
+/* Nothing here honoured prefers-reduced-motion: the decos drifted forever, the
+   CTA breathed on an infinite loop, and the poster shimmer never stopped.
+   Transitions are kept (they convey state) but shortened; the ambient loops go. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.12s !important;
+        scroll-behavior: auto !important;
+    }
+
+    .deco {
+        animation: none !important;
+    }
+
+    /* The shimmer sweep is purely decorative and loops indefinitely. */
+    .result-poster::after {
+        display: none;
+    }
+
+    .reel-hint {
+        opacity: 1;
+    }
+}
