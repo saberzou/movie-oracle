@@ -1197,6 +1197,8 @@ body.result-mode {
 
 <script type="module">
 import { mountReel, isWebGLAvailable } from './reel.js';
+import { shuffle } from './lib/random.js';
+import { broadenFilters, getTodayIsoDate, normalizeDateRange } from './lib/discovery.js';
 
 // =============================================
 //  CONFIG
@@ -1216,6 +1218,7 @@ function enterReelMode() {
     document.body.classList.add('reel-mode');
     document.body.classList.remove('result-mode');
     document.getElementById('reel').classList.add('active');
+    reelHandle?.setActive(true);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
     // Sync history so the browser back button leaves the page once we're at reel.
@@ -1233,6 +1236,7 @@ function exitReelMode() {
     inReelMode = false;
     document.body.classList.remove('reel-mode');
     document.getElementById('reel').classList.remove('active');
+    reelHandle?.setActive(false);
 }
 
 // CTA: "Pick for me" → start the oracle Q&A flow
@@ -1744,8 +1748,7 @@ const questionPool = [
 
 // Shuffle and pick 3 questions per session
 function pickQuestions() {
-    const shuffled = [...questionPool].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
+    return shuffle(questionPool).slice(0, 3);
 }
 
 let questions = pickQuestions();
@@ -1771,7 +1774,7 @@ const loadingMessages = [
 function buildFilters(answers) {
     let genres = new Set();
     let yearGte = '1990-01-01';
-    let yearLte = '2026-12-31';
+    let yearLte = getTodayIsoDate();
     let voteAvg = 6.0;
 
     questions.forEach((q, i) => {
@@ -1782,17 +1785,16 @@ function buildFilters(answers) {
         if (f.voteAvg && f.voteAvg > voteAvg) voteAvg = f.voteAvg;
     });
 
-    if (yearGte < '1990-01-01') yearGte = '1990-01-01';
-    if (yearLte < '1990-01-01') yearLte = '1990-12-31';
+    const dateRange = normalizeDateRange(yearGte, yearLte);
 
-    // Pick top 3 genres (TMDB allows comma-separated OR via pipe)
+    // TMDB uses | for genre OR and commas for AND.
     const genreArr = [...genres];
-    const selectedGenres = genreArr.sort(() => Math.random() - 0.5).slice(0, 3);
+    const selectedGenres = shuffle(genreArr).slice(0, 3);
 
     return {
-        with_genres: selectedGenres.join(','),
-        'primary_release_date.gte': yearGte,
-        'primary_release_date.lte': yearLte,
+        with_genres: selectedGenres.join('|'),
+        'primary_release_date.gte': dateRange.gte,
+        'primary_release_date.lte': dateRange.lte,
         'vote_average.gte': voteAvg,
         'vote_count.gte': 500,
         sort_by: 'vote_average.desc',
@@ -2001,17 +2003,22 @@ function answer(choice) {
     }
 }
 
-function tmdbFetch(path, params) {
-    const cfg = Object.assign({
-        accessToken: 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzNzgzOTc5YzYwMjEzNzhlMzQ2MTI3NGE0MjhlN2M2NCIsIm5iZiI6MTc1MTQ1NDk1My43ODksInN1YiI6IjY4NjUxNGU5ODEwNWJhMmYwNzZmNjJhNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Nq87nfCN7RIsnqn1un0Aac1w1vwERMB9WZGxrvz4Ee4',
-    }, window.TMDB_CONFIG || {});
-    const url = `https://api.themoviedb.org/3${path}?${new URLSearchParams(params)}`;
-    return fetch(url, {
-        headers: {
-            Authorization: `Bearer ${cfg.accessToken}`,
-            'Content-Type': 'application/json',
-        },
-    });
+function tmdbFetch(path, params = {}) {
+    if (path === '/discover/movie') {
+        return fetch(`/api/discover?${new URLSearchParams(params)}`);
+    }
+    if (path === '/trending/movie/week') {
+        return fetch('/api/tmdb?resource=trending');
+    }
+    const movieMatch = path.match(/^\/movie\/(\d+)(\/videos)?$/);
+    if (movieMatch) {
+        const query = new URLSearchParams({
+            resource: movieMatch[2] ? 'videos' : 'movie',
+            id: movieMatch[1],
+        });
+        return fetch(`/api/tmdb?${query}`);
+    }
+    throw new Error('Unsupported TMDB resource.');
 }
 
 async function fetchMovie() {
@@ -2027,11 +2034,11 @@ async function fetchMovie() {
         const data = await res.json();
 
         if (!data.results || data.results.length === 0) {
-            // Fallback: relax filters
-            filters['vote_average.gte'] = 6.0;
-            filters['vote_count.gte'] = 200;
-            filters.page = 1;
-            const res2 = await tmdbFetch('/discover/movie', filters);
+            // Fallback broadens genres, dates, and thresholds instead of
+            // retrying with the same potentially over-constrained answers.
+            const fallbackFilters = broadenFilters(filters);
+            const res2 = await tmdbFetch('/discover/movie', fallbackFilters);
+            if (!res2.ok) throw new Error('TMDB fallback request failed');
             const data2 = await res2.json();
             if (!data2.results || data2.results.length === 0) throw new Error('No movies found');
             lastResults = data2.results;
@@ -2040,7 +2047,7 @@ async function fetchMovie() {
         }
 
         // Shuffle results
-        lastResults = lastResults.sort(() => Math.random() - 0.5);
+        lastResults = shuffle(lastResults);
         lastResultIndex = 0;
 
         // Dramatic delay

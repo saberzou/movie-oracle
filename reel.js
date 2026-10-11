@@ -194,6 +194,8 @@ function loadPosterTexture(loader, posterPath, size) {
 
 export function mountReel(container, posters, opts = {}) {
   const { onFocus = () => {}, onSelect = () => {} } = opts;
+  let active = true;
+  let disposed = false;
 
   // ---- renderer ----
   const renderer = new THREE.WebGLRenderer({
@@ -512,6 +514,10 @@ export function mountReel(container, posters, opts = {}) {
   const clock = new THREE.Clock();
 
   function tick() {
+    if (!active || disposed) {
+      rafId = 0;
+      return;
+    }
     const t = clock.getElapsedTime();
 
     if (snapping) {
@@ -583,34 +589,59 @@ export function mountReel(container, posters, opts = {}) {
     rafId = requestAnimationFrame(tick);
   }
 
+  function setActive(nextActive) {
+    if (disposed) return;
+    const next = Boolean(nextActive);
+    if (next === active) return;
+    active = next;
+    if (active) {
+      onResize();
+      window.addEventListener('keydown', onKey);
+      rafId = requestAnimationFrame(tick);
+    } else {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+      window.removeEventListener('keydown', onKey);
+      clearTimeout(onWheel._snapTimer);
+      dragging = false;
+    }
+  }
+
+  function dispose() {
+    if (disposed) return;
+    setActive(false);
+    disposed = true;
+    cancelAnimationFrame(rafId);
+    clearTimeout(onWheel._snapTimer);
+    ro.disconnect();
+    window.removeEventListener('keydown', onKey);
+    renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+    renderer.domElement.removeEventListener('pointermove', onPointerMove);
+    renderer.domElement.removeEventListener('pointerup', onPointerUp);
+    renderer.domElement.removeEventListener('pointercancel', onPointerUp);
+    renderer.domElement.removeEventListener('wheel', onWheel);
+    meshes.forEach((s) => {
+      const tex = s.material.uniforms.map.value;
+      if (tex && tex !== placeholderTex) tex.dispose();
+      s.material.dispose();
+    });
+    placeholderTex.dispose();
+    posterGeo.dispose();
+    vignetteGeo.dispose();
+    vignetteMat.dispose();
+    renderer.dispose();
+    if (renderer.domElement.parentNode) {
+      renderer.domElement.parentNode.removeChild(renderer.domElement);
+    }
+  }
+
   // Initial load + render
   updateTextureLoading();
   tick();
 
   return {
-    dispose() {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-      window.removeEventListener('keydown', onKey);
-      renderer.domElement.removeEventListener('pointerdown', onPointerDown);
-      renderer.domElement.removeEventListener('pointermove', onPointerMove);
-      renderer.domElement.removeEventListener('pointerup', onPointerUp);
-      renderer.domElement.removeEventListener('pointercancel', onPointerUp);
-      renderer.domElement.removeEventListener('wheel', onWheel);
-      meshes.forEach((s) => {
-        const tex = s.material.uniforms.map.value;
-        if (tex && tex !== placeholderTex) tex.dispose();
-        s.material.dispose();
-      });
-      placeholderTex.dispose();
-      posterGeo.dispose();
-      vignetteGeo.dispose();
-      vignetteMat.dispose();
-      renderer.dispose();
-      if (renderer.domElement.parentNode) {
-        renderer.domElement.parentNode.removeChild(renderer.domElement);
-      }
-    },
+    dispose,
+    setActive,
     snapTo(i) {
       startSnap(clampTarget(i));
     },

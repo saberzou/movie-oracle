@@ -1,2 +1,4 @@
 config.js
 .vercel
+node_modules/
+coverage/
